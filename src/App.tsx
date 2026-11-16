@@ -150,12 +150,12 @@ export function App() {
       <Menu radioUp={focused} hidden={!entered} />
       <div className="hud">
         {paperHeld
-          ? `Turn the pages with the buttons or the arrow keys · Double-click away (or press Escape) to put it down${typing ? " and go back to the typewriter" : ""}`
+          ? `Turn the pages with the buttons or the arrow keys · Click away (or press Escape) to put it down${typing ? " and go back to the typewriter" : ""}`
           : focused
-            ? "Drag to turn it over · Shift-drag to roll · Scroll to bring it closer · Double-click the room to put it down"
+            ? "Drag to turn it over · Shift-drag to roll · Scroll to bring it closer · Click away to put it down"
             : typing
-              ? "Type a question and press Enter · Double-click away (or press Escape) to leave the typewriter"
-              : "Double-click the radio or the newspaper to pick it up · Click the typewriter to ask about Justin"}
+              ? "Type a question and press Enter · Click away (or press Escape) to leave the typewriter"
+              : "Click the radio, the newspaper or the typewriter to bring it closer"}
         <br />
         Music: live radio, streamed from the stations themselves
       </div>

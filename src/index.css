@@ -543,7 +543,7 @@ button.dial-station:focus-visible {
   display: flex;
   flex-direction: column;
 }
-/* the drawable wrapper: exactly the page, a pointer while it rests (double-click to
+/* the drawable wrapper: exactly the page, a pointer while it rests (click to
    pick it up), the text cursor once it is held up to read */
 .stage > .paper-sheet {
   width: 860px;

@@ -308,7 +308,7 @@ export function createStage(
   }
 
   // ---- two ways to be: resting on the table, or picked up into the middle
-  // of the view. Double-click the radio to pick it up; double-click the room
+  // of the view. Click the radio to pick it up; click the room
   // (or Escape) to put it down. Only when it's picked up does dragging turn it.
   let q: Quat = FOCUS_START
   // After a fling it coasts: an axis and a speed in radians per second.
@@ -357,7 +357,7 @@ export function createStage(
   }
 
   // The cursor says what you can do: a hand over the radio once it's picked
-  // up (you can turn it), a pointer over it while it rests (double-click to
+  // up (you can turn it), a pointer over it while it rests (click to
   // pick it up), the plain arrow everywhere else. The controls set their own.
   const setCursor = (c: string) => {
     if (canvas.style.cursor !== c) canvas.style.cursor = c
@@ -408,32 +408,38 @@ export function createStage(
     e.preventDefault()
     focusDist = Math.min(5, Math.max(2.2, focusDist * Math.exp(e.deltaY * 0.001)))
   }
-  const onDbl = (e: MouseEvent) => {
-    // the newspaper: double-click it to pick it up, anywhere else to put it down
-    const onPaper = e.target instanceof Node && els.pages.some((el) => el.contains(e.target as Node))
-    const onType = e.target instanceof Node && els.typewriter.contains(e.target)
-    // the typewriter: double-click (or click) its sheet to sit at it; double-click
-    // the room to get up. The paper and the radio, handed over, come first.
-    if (!paperHeld() && !focused) {
-      if (onType) return typewriterStore.set({ open: true })
-      const onRadioHere = e.target !== canvas || hitsRadio(e.clientX, e.clientY)
-      if (typewriterStore.get().open && !onPaper && !onRadioHere) return typewriterStore.set({ open: false })
-    }
+  // One click brings a thing into view (the radio's cabinet, the newspaper, the
+  // typewriter's sheet) and one click anywhere else puts it down. A click that
+  // ends a drag (turning the radio, selecting text) doesn't count, and clicks on
+  // the radio's own controls work them rather than picking it up.
+  let pressAt = { x: 0, y: 0 }
+  const onPress = (e: PointerEvent) => (pressAt = { x: e.clientX, y: e.clientY })
+  const onClickScene = (e: MouseEvent) => {
+    if (Math.hypot(e.clientX - pressAt.x, e.clientY - pressAt.y) > 5) return
+    const target = e.target instanceof Node ? e.target : null
+    const within = (el: HTMLElement) => !!target && el.contains(target)
+    if (within(els.tag)) return // the teabag's tag is a link
+    const onPaper = els.pages.some(within)
+    const onType = within(els.typewriter)
+    const onPanel = [els.dial, els.controls, els.label].some(within)
+    const onCabinet = e.target === canvas && hitsRadio(e.clientX, e.clientY)
     if (paperHeld()) {
       if (!onPaper) paperStore.set({ held: false })
       return
     }
-    if (onPaper) {
-      if (!focused) {
-        window.getSelection()?.removeAllRanges()
-        paperStore.set({ held: true })
-      }
+    if (focused) {
+      if (!onPanel && !onCabinet) setFocused(false)
       return
     }
-    // the panels are part of the radio, so a double-click on them counts too
-    const onRadio = e.target !== canvas || hitsRadio(e.clientX, e.clientY)
-    if (!focused && onRadio) setFocused(true)
-    else if (focused && !onRadio) setFocused(false)
+    if (onPaper) {
+      window.getSelection()?.removeAllRanges()
+      return paperStore.set({ held: true })
+    }
+    if (onType) return typewriterStore.set({ open: true })
+    if (onCabinet) return setFocused(true)
+    if (onPanel) return
+    // the room itself: get up from the typewriter
+    if (typewriterStore.get().open) typewriterStore.set({ open: false })
   }
   const onKey = (e: KeyboardEvent) => {
     const typing = e.target instanceof HTMLElement && e.target.closest("input, textarea")
@@ -453,7 +459,8 @@ export function createStage(
   canvas.addEventListener("pointerup", onUp)
   canvas.addEventListener("pointercancel", onUp)
   canvas.addEventListener("wheel", onWheel, { passive: false })
-  canvas.addEventListener("dblclick", onDbl)
+  canvas.addEventListener("pointerdown", onPress, true)
+  canvas.addEventListener("click", onClickScene)
   canvas.addEventListener("contextmenu", noMenu)
 
   // ---- the room's offscreen target (float if the GPU can render to it)
@@ -1135,7 +1142,8 @@ export function createStage(
     canvas.removeEventListener("pointerup", onUp)
     canvas.removeEventListener("pointercancel", onUp)
     canvas.removeEventListener("wheel", onWheel)
-    canvas.removeEventListener("dblclick", onDbl)
+    canvas.removeEventListener("pointerdown", onPress, true)
+    canvas.removeEventListener("click", onClickScene)
     canvas.removeEventListener("contextmenu", noMenu)
     ro.disconnect()
   }
