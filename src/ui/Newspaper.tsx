@@ -68,7 +68,7 @@ function Folio({ index }: { index: number }) {
       {left ? (
         <Button
           className="turn"
-          onClick={() => paperStore.set({ view: viewOf(index - 1) })}
+          onClick={() => paperStore.set({ held: true, view: viewOf(index - 1) })}
         >
           ‹ Back to page {index}
         </Button>
@@ -81,7 +81,7 @@ function Folio({ index }: { index: number }) {
       {!left && index < PAGE_COUNT - 1 ? (
         <Button
           className="turn"
-          onClick={() => paperStore.set({ view: viewOf(index + 1) })}
+          onClick={() => paperStore.set({ held: true, view: viewOf(index + 1) })}
         >
           Turn to page {index + 2} ›
         </Button>

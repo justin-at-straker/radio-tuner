@@ -3,6 +3,9 @@ import { createStage, supportsHtmlInCanvas } from "@/gl/stage"
 import { BackLabel, Controls, Dial } from "@/ui/panels"
 import { installHardware } from "@/lib/install"
 import { NewspaperPage, PaperAnnouncer } from "@/ui/Newspaper"
+import { TypewriterPage } from "@/ui/Typewriter"
+import { Menu } from "@/ui/Menu"
+import { useTypewriter } from "@/ui/typewriterStore"
 import { PAGE_COUNT, usePaper } from "@/ui/paperStore"
 import { startAudio } from "@/radio/audio"
 import { loading } from "@/gl/assets"
@@ -74,6 +77,8 @@ export function App() {
   const tag = React.useRef<HTMLAnchorElement>(null)
   const pages = React.useRef<HTMLDivElement[]>([])
   const paperHeld = usePaper().held
+  const typing = useTypewriter().open
+  const typewriter = React.useRef<HTMLDivElement>(null)
   const [supported] = React.useState(supportsHtmlInCanvas)
   const [error, setError] = React.useState<string | null>(null)
   const [focused, setFocused] = React.useState(false)
@@ -87,7 +92,7 @@ export function App() {
     try {
       return createStage(
         canvas.current!,
-        { dial: dial.current!, controls: controls.current!, label: label.current!, tag: tag.current!, pages: pages.current },
+        { dial: dial.current!, controls: controls.current!, label: label.current!, tag: tag.current!, pages: pages.current, typewriter: typewriter.current! },
         { onFocusChange: setFocused, onReady: () => setReady(true) },
       )
     } catch (e) {
@@ -121,6 +126,8 @@ export function App() {
         {Array.from({ length: PAGE_COUNT }, (_, i) => (
           <NewspaperPage key={i} index={i} ref={(el) => void (pages.current[i] = el!)} />
         ))}
+        {/* the typewriter's sheet: ask about Justin, and the room's own agent answers */}
+        <TypewriterPage ref={typewriter} />
         {/* a gift tag tied to the teapot: a real link, drawn into the room */}
         <a
           ref={tag}
@@ -140,12 +147,15 @@ export function App() {
           </span>
         </a>
       </canvas>
+      <Menu radioUp={focused} hidden={!entered} />
       <div className="hud">
         {paperHeld
-          ? "Turn the pages with the buttons or the arrow keys · Double-click away (or press Escape) to put it down"
+          ? `Turn the pages with the buttons or the arrow keys · Double-click away (or press Escape) to put it down${typing ? " and go back to the typewriter" : ""}`
           : focused
             ? "Drag to turn it over · Shift-drag to roll · Scroll to bring it closer · Double-click the room to put it down"
-            : "Double-click the radio, or the newspaper, to pick it up"}
+            : typing
+              ? "Type a question and press Enter · Double-click away (or press Escape) to leave the typewriter"
+              : "Double-click the radio or the newspaper to pick it up · Click the typewriter to ask about Justin"}
         <br />
         Music: live radio, streamed from the stations themselves
       </div>

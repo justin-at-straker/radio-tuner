@@ -43,4 +43,5 @@ await agent.act({ steps: [{ ref: "Station", action: "setValue", args: ["RNZ Conc
 ## Credits
 
 - Textures, HDRI and models: [Poly Haven](https://polyhaven.com), CC0. See `public/tex/CREDITS.md` and `public/models/CREDITS.md`.
+- Typewriter: ["Typewriter"](https://sketchfab.com/3d-models/typewriter-4954fbf220d748ecbd82005f31d29f15) by [landout](https://sketchfab.com/landout), [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/).
 - Radio: live streams from RNZ, NPO Klassiek, Jazz24 (KNKX), KPOA, Positively 1920's, Clasic Radio Opera and WALM Christmas/Classic Vinyl HD, played from their own public streams. All rights remain with the stations.

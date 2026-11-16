@@ -45,6 +45,7 @@ uniform sampler2D uTexBack;           // the page printed on the back of the she
 uniform sampler2D uPaperD, uPaperN;   // newsprint fibre
 uniform sampler2D uCreaseN;           // a well-handled paper's soft creases
 uniform float uReadable; // 0..1: how far a page is held up to read
+uniform float uSheer;    // 0..1: how much light a sheet lets through (newsprint, typing paper)
 uniform int uDepthOnly;            // the lamp's shadow pass: depth only, no shading
 uniform highp sampler2DShadow uShadowMap;
 uniform mat4 uLightVP;             // world -> the lamp's shadow map
@@ -391,6 +392,11 @@ void main() {
     c += vec3(1.2, 0.35, 0.05) * smoothstep(0.25, 0.0, fu.y) * body * 0.8;
     gAlpha = 1.0;
 
+  } else if (uMode == 22) {
+    // a plain coloured thing: the teabag's string and paper, the tea in the cup
+    // (uTint: colour in sRGB, roughness in alpha)
+    c = shade(plain(srgbToLinear(uTint.rgb), n, uTint.a));
+
   } else if (uMode == 21) {
     // a black stand-in, under the reflections
     c = vec3(0.0);
@@ -526,6 +532,7 @@ void main() {
       print = mix(srgbToLinear(vec3(0.91, 0.87, 0.78)), print, 0.1);
     }
     vec2 pu = vUv * vec2(2.2, 3.1);
+    float inkBehind = 0.0; // the other side's print, where there is any
     if (uPage == 1) {
       // newsprint fibre under the ink: a little unevenness in the paper itself
       float fibre = dot(texture(uPaperD, pu).rgb, vec3(0.333));
@@ -536,6 +543,7 @@ void main() {
       vec3 other = backOfPage ? texture(uTex, vec2(1.0 - uv.x, uv.y)).rgb : texture(uTexBack, vec2(1.0 - uv.x, uv.y)).rgb;
       float through = clamp((0.86 - dot(other, vec3(0.333))) / 0.86, 0.0, 1.0);
       print *= 1.0 - 0.11 * through;
+      inkBehind = through;
     }
     if (uPage == 1) {
       float edge = min(min(vUv.x, 1.0 - vUv.x), min(vUv.y, 1.0 - vUv.y));
@@ -584,19 +592,23 @@ void main() {
         s.rough = 0.97; // newsprint has no sheen at all
       }
       c = shade(s);
-      if (uPage == 1) {
-        // and it lets light through: lamps and fire behind the sheet glow in it
+      gAlpha = t.a; // a card can have a shape (a tag's clipped corners)
+      // held up to read, a page turns toward the light: lift it toward plain print
+      c = mix(c, print * 0.85, uReadable);
+      if (uSheer > 0.0) {
+        // thin paper lets light through: the fire and lamps behind the sheet
+        // glow in it, warmest where it's bare, and the print on the other side
+        // shows darker against them
         vec3 tl = uKeyCol * max(dot(-s.N, uKeyDir), 0.0) * gKeyShadow;
         for (int i = 0; i < 4; i++) {
           vec3 L = uLightPos[i] - vWorld;
           float d = length(L);
           tl += uLightCol[i] / (1.0 + d * d * 0.06) * max(dot(-s.N, L / d), 0.0);
         }
-        c += print * tl * 0.06;
+        float lit = clamp(dot(tl, vec3(0.3, 0.5, 0.2)) * 0.6, 0.0, 1.0);
+        c *= 1.0 - inkBehind * lit * 0.32 * uSheer;
+        c += print * tl * 0.2 * uSheer;
       }
-      gAlpha = t.a; // a card can have a shape (the teapot's tag does)
-      // held up to read, a page turns toward the light: lift it toward plain print
-      c = mix(c, print * 0.85, uReadable);
     }
   }
 

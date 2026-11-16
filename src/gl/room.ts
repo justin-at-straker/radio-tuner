@@ -41,15 +41,17 @@ const OPEN = { w: 4.2, h: 3.4, y: 0.5 } // the firebox opening, from the hearth
 const MANTEL_Y = FLOOR + 6
 const WINDOW = { x: 8.2, y: FLOOR + 7.5, w: 5, h: 6.5 }
 const TREE = { x: 6.6, z: -8.6, h: 10.5, r: 2.9 }
-export const TEAPOT = { x: -1.75, z: 0.05 }
-/** Side-on to you: spout to the right, handle to the left, the front clear for the tag. */
-const TEAPOT_TURN = Math.PI / 2 + 0.2
-const CUP = { x: -0.55, z: 1.35 }
+/** The teacup, a teabag in it: its tag is the GitHub link. */
+export const CUP = { x: -1.0, z: 2.85, turn: 0.9 }
+/** The typewriter, front left of the radio, turned toward you. Modelled
+  *  4.8 m wide; a desktop machine like this one is about 0.36 m, so in proportion
+ *  to the radio (0.48 m). */
+export const TYPEWRITER = { x: -1.25, z: 1.2, turn: 0.3, scale: 0.075 }
 /** Three postcards on the table: x, z and turn. */
 const POSTCARDS: [number, number, number][] = [
-  [-1.55, 2.45, 0.3],
-  [-1.15, 2.6, -0.2],
-  [-0.8, 2.35, 0.65],
+  [0.05, 2.95, 0.3],
+  [0.4, 3.1, -0.2],
+  [0.75, 2.85, 0.65],
 ]
 const POSTCARD_NAMES = ["postcard_03", "postcard_07", "postcard_12"]
 const LAMP = { x: -8.6, z: -9.6 }
@@ -103,6 +105,7 @@ export function createRoom(ctx: RoomCtx) {
   }
   const ready = Promise.all([
     model("postcard_set_01"),
+    model("typewriter_01"),
     model("book_encyclopedia_set_01"),
     ...["floor", "wall", "stone", "rug"].map(set),
     ...["sofa_02", "throw_pillows_01", "tea_set_01", "mantel_clock_01", "brass_candleholders", "vintage_oil_lamp", "side_table_01", "wooden_bookshelf_worn", "fancy_picture_frame_01", "Rockingchair_01"].map(model),
@@ -249,10 +252,12 @@ export function createRoom(ctx: RoomCtx) {
     /** The tea things on the coffee table: drawn sharp, with the radio. */
     drawTable(tableY: number, pre: Mat4 = identity()) {
       const at = (x: number, z: number, a: number) => mul(pre, translate(x, tableY, z), rotateY(a))
-      drawPart("tea_set_01", "tea_set_01_teapot_01", at(TEAPOT.x, TEAPOT.z, TEAPOT_TURN))
-      drawPart("tea_set_01", "tea_set_01_teapot_01_lid", mul(at(TEAPOT.x, TEAPOT.z, TEAPOT_TURN), translate(0, 0.002 * M, 0)))
       drawPart("tea_set_01", "tea_set_01_saucer_circular_03", at(CUP.x, CUP.z, 0))
-      drawPart("tea_set_01", "tea_set_01_cup_small_01", mul(at(CUP.x, CUP.z, 0.9), translate(0, 0.012 * M, 0)))
+      drawPart("tea_set_01", "tea_set_01_cup_small_01", mul(at(CUP.x, CUP.z, CUP.turn), translate(0, 0.012 * M, 0)))
+      // the typewriter (its own paper is left out: the page in it is HTML)
+      const tw = models.typewriter_01
+      const k = TYPEWRITER.scale
+      if (tw) drawModel("typewriter_01", mul(at(TYPEWRITER.x, TYPEWRITER.z, TYPEWRITER.turn), translate(0, -tw.min[1] * M * k, 0), scale(k, k, k)), (p) => p.material.name !== "paper")
       // three postcards, fanned out where someone left them
       for (const [k, [x, z, a]] of POSTCARDS.entries())
         this.drawFlat("postcard_set_01", POSTCARD_NAMES[k], mul(at(x, z, a), translate(0, 0.003 + k * 0.002, 0)))
@@ -260,8 +265,8 @@ export function createRoom(ctx: RoomCtx) {
     /** Footprints of the tea things, for their contact shadows on the table. */
     tableOccluders() {
       return [
-        { x: TEAPOT.x, z: TEAPOT.z, hw: 0.42, hd: 0.42, turn: 0, round: 0.42, h: 0.6 },
         { x: CUP.x, z: CUP.z, hw: 0.37, hd: 0.37, turn: 0, round: 0.37, h: 0.3 },
+        { x: TYPEWRITER.x, z: TYPEWRITER.z, hw: 0.75, hd: 0.6, turn: TYPEWRITER.turn, round: 0.15, h: 0.7 },
       ]
     },
     /** The room's light sources this instant: the fire, the oil lamp, candles, the tree. */

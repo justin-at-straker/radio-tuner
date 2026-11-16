@@ -348,3 +348,6 @@ function installSound() {
 }
 
 export { installSound, onSoundChange, setSoundEnabled, soundEnabled, soundFor }
+
+/** A typewriter's keystroke, for text that types itself (the typewriter's replies). */
+export const typeSound = (voice: "type" | "type-space" | "type-big") => play(voice)

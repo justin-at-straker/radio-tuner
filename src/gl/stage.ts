@@ -23,10 +23,13 @@ import {
 } from "./math"
 import { fragment, MODE, vertex } from "./shaders"
 import { loadHdr, loadTexture } from "./assets"
-import { createRoom, FLOOR, TEAPOT } from "./room"
+import { createRoom, CUP, FLOOR, M, TYPEWRITER } from "./room"
 import { CONTROLS, DIAL, KNOBS, LABEL, needleU, PX_PER_UNIT } from "@/ui/panels"
 import { PAPER } from "@/ui/Newspaper"
 import { PAGES_IN_VIEW, paperStore } from "@/ui/paperStore"
+import { TYPE_PAGE } from "@/ui/Typewriter"
+import { typewriterStore } from "@/ui/typewriterStore"
+import { radioFocus } from "@/ui/radioFocus"
 import { radio } from "@/radio/store"
 import { setRadioCloseness, signal } from "@/radio/audio"
 
@@ -61,9 +64,10 @@ const FRONT = CAB.hz + 0.003
 const BACK = -CAB.hz - 0.003
 const unit = (px: number) => px / PX_PER_UNIT
 const TABLE_Y = -0.75
-/** The gift tag on the teapot: its size in CSS px, and where its ribbon ties on. */
-const TAG = { w: 200, h: 112 }
-const TEAPOT_KNOB = 0.78
+/** The teabag's tag (the GitHub link), in CSS px; and the cup it hangs from:
+ *  rim height above the table and radius, tea level, in world units. */
+const TAG = { w: 140, h: 110 }
+const CUP_RIM = { y: 0.41, r: 0.27, tea: 0.31, teaR: 0.235 }
 /** The sheets under the open page sit a little off true: [x, y] in page widths and heights. */
 const STACK: [number, number][] = [
   [0.007, -0.005],
@@ -81,13 +85,18 @@ const PAPER_AT: [number, number, number] = [1.55, TABLE_Y + 0.006, 2.35]
 const PAPER_YAW = 0.22
 const PAPER_SCALE = 0.65
 /** Where it's held up to read, over the table, and how far back you sit to read it. */
-const PAPER_READ: [number, number, number] = [0.25, 0, 3.0]
+const PAPER_READ: [number, number, number] = [0.25, 0, 3.25]
 // Held up to read, the paper comes as close as it can while the print still
 // fits the screen: only the bare margins may run off the edge. PAPER_PRINT is
 // the printed area of a page (CSS px, inset from each edge); PAPER_SCREEN_GAP
 // is what's kept clear on screen (CSS px), the bottom leaving room for the hints.
+/** The sheet in the typewriter, in the model's own units: it rises from the
+ *  top of the platen, leaning back a little and curling over at the top. */
+const SHEET = { at: [0, 1.775, -1.464] as const, tilt: 0.3, w: 3.0, h: 2.6, curl: 0.3 }
+/** The typewriter model sits this far below its own origin (its feet). */
+const TYPEWRITER_FEET = 0.049
 const PAPER_PRINT = { x: 24, top: 18, bottom: 14 }
-const PAPER_SCREEN_GAP = { side: 14, top: 10, bottom: 54 }
+const PAPER_SCREEN_GAP = { side: 14, top: 62, bottom: 54 } // the top clear of the menu
 // turns the room so the fire is off to the right, lighting the radio from the side
 const ENV_ROT = 0
 const DIAL_AT = { x: -0.12, y: -0.14 }
@@ -141,7 +150,7 @@ const FOCUS_DIST = 3.4
 
 export function createStage(
   canvas: HTMLCanvasElement,
-  els: { dial: HTMLElement; controls: HTMLElement; label: HTMLElement; tag: HTMLElement; pages: HTMLElement[] },
+  els: { dial: HTMLElement; controls: HTMLElement; label: HTMLElement; tag: HTMLElement; pages: HTMLElement[]; typewriter: HTMLElement },
   opts: { onFocusChange?: (focused: boolean) => void; onReady?: () => void } = {},
 ) {
   const cv = canvas as HtmlCanvas
@@ -190,6 +199,7 @@ export function createStage(
   const discMesh = upload(disc())
   const tableMesh = upload(slab(TABLE_SIZE.rx, TABLE_SIZE.rz, TABLE_SIZE.t, TABLE_SIZE.er))
   const legMesh = upload(roundedBox(0.16, 0.5, 0.16, 0.05, 6))
+  const bagMesh = upload(roundedBox(0.085, 0.022, 0.1, 0.018, 6))
 
   // ---- the HTML panels
   const makePanel = (el: HTMLElement, css: { w: number; h: number }, at: { x: number; y: number }, back: boolean, mode: number): Panel => {
@@ -217,6 +227,39 @@ export function createStage(
   ]
   // the gift tag tied to the teapot: a link, placed in the room each frame
   const tag = makePanel(els.tag, TAG, { x: 0, y: 0 }, false, MODE.label)
+  // the typewriter's sheet: its HTML page, on a sheet that curls back at the top
+  const typePage = makePanel(els.typewriter, TYPE_PAGE, { x: 0, y: 0 }, false, MODE.label)
+  const sheetMesh = upload(
+    (() => {
+      const m = grid(6, 18)
+      for (let i = 0; i < m.data.length; i += 8) {
+        const v = m.data[i + 1] + 0.5 // 0 at the platen, 1 at the top
+        m.data[i + 2] = -SHEET.curl * v * v
+        const slope = (2 * SHEET.curl * v) / SHEET.h
+        const len = Math.hypot(slope, 1)
+        m.data[i + 3] = 0
+        m.data[i + 4] = slope / len
+        m.data[i + 5] = 1 / len
+      }
+      return m
+    })(),
+  )
+  let tf = 0 // 0 away .. 1 sat at the typewriter, eased
+  // where the sheet is: the typewriter's own units -> the room (as the room draws it)
+  const twK = TYPEWRITER.scale * M
+  const twWorld = mul(translate(TYPEWRITER.x, TABLE_Y, TYPEWRITER.z), rotateY(TYPEWRITER.turn), translate(0, TYPEWRITER_FEET * twK, 0), scale(twK, twK, twK))
+  const sheetPlace = mul(twWorld, translate(...SHEET.at), rotateX(-SHEET.tilt), translate(0, SHEET.h / 2, 0), scale(SHEET.w, SHEET.h, 1))
+  const sheetSize = [SHEET.w * twK, SHEET.h * twK] as const
+  // the camera's seat at the typewriter: square on to the middle of the sheet,
+  // as near as fits it on screen
+  const sheetCentre = transformPoint(sheetPlace, [0, 0, -SHEET.curl * 0.3]).slice(0, 3) as [number, number, number]
+  const sheetNormal = (() => {
+    const n = transformPoint(sheetPlace, [0, 0, 1])
+    const o = transformPoint(sheetPlace, [0, 0, 0])
+    const d = [n[0] - o[0], n[1] - o[1], n[2] - o[2]]
+    const l = Math.hypot(...d)
+    return d.map((v) => v / l) as [number, number, number]
+  })()
   // the newspaper on the table (Justin's CV): four pages, picked up to read
   // and turned. Whether it's held and which page is open live in paperStore,
   // shared with the pages' own buttons.
@@ -368,6 +411,14 @@ export function createStage(
   const onDbl = (e: MouseEvent) => {
     // the newspaper: double-click it to pick it up, anywhere else to put it down
     const onPaper = e.target instanceof Node && els.pages.some((el) => el.contains(e.target as Node))
+    const onType = e.target instanceof Node && els.typewriter.contains(e.target)
+    // the typewriter: double-click (or click) its sheet to sit at it; double-click
+    // the room to get up. The paper and the radio, handed over, come first.
+    if (!paperHeld() && !focused) {
+      if (onType) return typewriterStore.set({ open: true })
+      const onRadioHere = e.target !== canvas || hitsRadio(e.clientX, e.clientY)
+      if (typewriterStore.get().open && !onPaper && !onRadioHere) return typewriterStore.set({ open: false })
+    }
     if (paperHeld()) {
       if (!onPaper) paperStore.set({ held: false })
       return
@@ -392,8 +443,10 @@ export function createStage(
     }
     if (e.key === "Escape" && paperHeld()) paperStore.set({ held: false })
     else if (e.key === "Escape" && focused) setFocused(false)
+    else if (e.key === "Escape" && typewriterStore.get().open) typewriterStore.set({ open: false })
   }
   window.addEventListener("keydown", onKey)
+  const stopListening = radioFocus.listen((on) => setFocused(on))
   const noMenu = (e: Event) => e.target === canvas && e.preventDefault()
   canvas.addEventListener("pointerdown", onDown)
   canvas.addEventListener("pointermove", onMove)
@@ -489,6 +542,11 @@ export function createStage(
     shown += Math.sign(ps.view - shown) * Math.min(Math.abs(ps.view - shown), dt / (closing ? 0.45 : 0.7))
     const lifted = ps.held || shown > 0.001 ? 1 : 0
     pf += Math.sign(lifted - pf) * Math.min(Math.abs(lifted - pf), dt / 0.6)
+    // sat at the typewriter: unless the paper or the radio has your attention
+    // (the typist may have handed you either); then back to it after
+    const twOpen = typewriterStore.get().open && !ps.held && pf < 0.05 && !focused && f < 0.05
+    tf += Math.sign((twOpen ? 1 : 0) - tf) * Math.min(Math.abs((twOpen ? 1 : 0) - tf), dt / 0.7)
+    const te = tf * tf * (3 - 2 * tf)
     const pe = pf * pf * (3 - 2 * pf)
     const paperW = unit(PAPER.w) * PAPER_SCALE
     const paperH = unit(PAPER.h) * PAPER_SCALE
@@ -496,7 +554,8 @@ export function createStage(
     // rising to meet it; open past the front page, centred on the spine
     // the camera follows what's open: the front page, the spread's spine, the back page
     const across = Math.min(1, shown) + Math.max(0, Math.min(1, shown - 1))
-    const readAt: [number, number, number] = [PAPER_READ[0], TABLE_Y + paperH / 2 + 0.12, PAPER_READ[2]]
+    // held just above the table, in front of the cup, so its bottom edge hides it
+    const readAt: [number, number, number] = [PAPER_READ[0], TABLE_Y + paperH / 2 + 0.08, PAPER_READ[2]]
     const readLook: [number, number, number] = [readAt[0] - (paperW / 2) * across, readAt[1], readAt[2]]
 
     // valves warm up slowly and cool a little faster
@@ -508,6 +567,8 @@ export function createStage(
     for (const p of panels) if (p.dirty) takePicture(p)
     if (changed?.includes(tag.el)) tag.dirty = true
     if (tag.dirty) takePicture(tag)
+    if (changed?.includes(typePage.el)) typePage.dirty = true
+    if (typePage.dirty) takePicture(typePage)
     for (const p of pages) {
       if (changed?.includes(p.el)) p.dirty = true
       if (p.dirty) takePicture(p)
@@ -544,8 +605,13 @@ export function createStage(
     // aim a touch below the print so it sits in the clear space above the hints
     const aimDrop = ((PAPER_SCREEN_GAP.bottom - PAPER_SCREEN_GAP.top) / 2 / (H / 2)) * readDist * tanY
     const readAim: [number, number, number] = [readLook[0], readLook[1] + printMid - aimDrop, readLook[2]]
-    const eye = mixP(radioEye, [readAim[0], readAim[1], readAim[2] + readDist])
-    const view = lookAt(eye, mixP(radioLook, readAim))
+    const eye0 = mixP(radioEye, [readAim[0], readAim[1], readAim[2] + readDist])
+    const look0 = mixP(radioLook, readAim)
+    const seatDist = Math.max(sheetSize[1] / 2 / (tanY * 0.84), sheetSize[0] / 2 / (tanY * (W / H) * 0.9))
+    const seat = sheetCentre.map((v, i) => v + sheetNormal[i] * seatDist)
+    const mixT = (a: number[], b: number[]) => a.map((v, i) => v + (b[i] - v) * te) as [number, number, number]
+    const eye = mixT(eye0, seat)
+    const view = lookAt(eye, mixT(look0, sheetCentre))
     const rot = quatToMat(quatSlerp(REST_Q, q, e))
     const pos = lerp3(REST_POS, HELD)
     pos[1] += Math.sin(e * Math.PI) * 0.35
@@ -701,32 +767,45 @@ export function createStage(
         draw(knobMesh, mul(model, translate(at.x, at.y, CAB.hz), rotateZ(turn(v))), MODE.knob)
       }
     }
-    // The gift tag on the teapot, on a gold ribbon from the lid's knob,
-    // hanging down the front of the pot and swaying a little in the warm air.
-    // Placed once per frame, then drawn by every pass: the lamp's shadows,
-    // the reflection in the table, and the room itself.
-    const hang: [number, number, number] = [TEAPOT.x, TABLE_Y + 0.52, TEAPOT.z + 0.5]
-    const knob: [number, number, number] = [TEAPOT.x, TABLE_Y + TEAPOT_KNOB, TEAPOT.z]
-    const tagYaw = Math.atan2(eye[0] - hang[0], eye[2] - hang[2])
-    const swing = 0.05 * Math.sin(t * 0.9) + 0.018 * Math.sin(t * 2.3 + 1)
-    const tagW = unit(TAG.w) * 1.3
-    const tagH = unit(TAG.h) * 1.3
-    tag.place = mul(translate(...hang), rotateY(tagYaw), rotateZ(swing), rotateX(-0.1), translate(0, -tagH / 2 + 0.03, 0), scale(tagW, tagH, 1))
-    const rib = hang.map((v, i) => v - knob[i])
-    const ribLen = Math.hypot(...rib)
-    const yAxis = rib.map((v) => v / ribLen)
-    const xAxis = [yAxis[1], -yAxis[0], 0]
-    const xl = Math.hypot(...xAxis) || 1
-    const ribbon: Mat4 = new Float32Array([
-      (xAxis[0] / xl) * 0.018, (xAxis[1] / xl) * 0.018, 0, 0,
-      yAxis[0] * ribLen, yAxis[1] * ribLen, yAxis[2] * ribLen, 0,
-      0, 0, 1, 0,
-      (hang[0] + knob[0]) / 2, (hang[1] + knob[1]) / 2, (hang[2] + knob[2]) / 2, 1,
-    ])
-    /** Draws the ribbon and tag, under a placement (identity, or the table's mirror). */
+    // The teabag in the cup: the bag steeping in the tea, its string over the
+    // rim on your side, and its tag (the GitHub link) hanging outside the cup,
+    // swaying a little in the warm air. Placed once per frame, then drawn by
+    // every pass: the lamp's shadows, the reflection in the table, the room.
+    const toEye = Math.atan2(eye[0] - CUP.x, eye[2] - CUP.z)
+    const out: [number, number] = [Math.sin(toEye), Math.cos(toEye)]
+    const cupAt = (d: number, y: number): [number, number, number] => [CUP.x + out[0] * d, TABLE_Y + y, CUP.z + out[1] * d]
+    const bagAt = cupAt(-0.06, CUP_RIM.tea + 0.01)
+    const lip = cupAt(CUP_RIM.r + 0.01, CUP_RIM.y + 0.012)
+    const hang = cupAt(CUP_RIM.r + 0.045, CUP_RIM.y - 0.03)
+    const swing = 0.04 * Math.sin(t * 0.9) + 0.015 * Math.sin(t * 2.3 + 1)
+    const tagW = unit(TAG.w) * 0.85
+    const tagH = unit(TAG.h) * 0.85
+    tag.place = mul(translate(...hang), rotateY(toEye), rotateZ(swing), rotateX(-0.06), translate(0, -tagH / 2, 0), scale(tagW, tagH, 1))
+    /** A length of cotton string between two points, as a thin quad. */
+    const strand = (a: number[], b: number[], width = 0.009): Mat4 => {
+      const d = b.map((v, i) => v - a[i])
+      const len = Math.hypot(...d)
+      const y = d.map((v) => v / len)
+      // across the string, square to the line of sight
+      const x = [y[1] * out[1], y[2] * out[0] - y[0] * out[1], -y[1] * out[0]]
+      const xl = Math.hypot(...x) || 1
+      return new Float32Array([
+        (x[0] / xl) * width, (x[1] / xl) * width, (x[2] / xl) * width, 0,
+        y[0] * len, y[1] * len, y[2] * len, 0,
+        0, 0, 1, 0,
+        (a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2, 1,
+      ])
+    }
+    const strings = [strand(bagAt, lip), strand(lip, hang)]
+    const tea = mul(translate(...cupAt(0, CUP_RIM.tea)), rotateX(-Math.PI / 2), scale(CUP_RIM.teaR * 2, CUP_RIM.teaR * 2, 1))
+    const bag = mul(translate(...bagAt), rotateY(toEye + 0.5), rotateX(0.35))
+    const tinted = (rgb: [number, number, number], rough: number) => () => gl.uniform4f(U.uTint, rgb[0], rgb[1], rgb[2], rough)
+    /** Draws the tea, the bag, its string and tag, under a placement (identity, or the table's mirror). */
     const drawTag = (pre: Mat4, depthOnly = false) => {
       gl.disable(gl.CULL_FACE)
-      draw(quadMesh, mul(pre, ribbon), MODE.brass)
+      if (!depthOnly) draw(discMesh, mul(pre, tea), MODE.tint, tinted([0.32, 0.16, 0.06], 0.08))
+      draw(bagMesh, mul(pre, bag), MODE.tint, tinted([0.86, 0.8, 0.68], 0.9))
+      for (const sm of strings) draw(quadMesh, mul(pre, sm), MODE.tint, tinted([0.95, 0.93, 0.88], 0.8))
       if (!depthOnly) {
         gl.enable(gl.BLEND)
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
@@ -742,6 +821,26 @@ export function createStage(
         gl.depthMask(true)
         gl.disable(gl.BLEND)
       }
+      gl.enable(gl.CULL_FACE)
+      gl.uniformMatrix4fv(U.uCab, false, model)
+      gl.uniformMatrix4fv(U.uCabInv, false, invert(model))
+    }
+
+    /** The typewriter's sheet: its HTML page on the curled sheet, lifted toward
+     *  plain print while you're sat reading it. */
+    const drawTypeSheet = () => {
+      gl.disable(gl.CULL_FACE)
+      bindSet(...sets.linen)
+      gl.activeTexture(gl.TEXTURE0)
+      gl.bindTexture(gl.TEXTURE_2D, typePage.tex)
+      gl.uniformMatrix4fv(U.uCab, false, sheetPlace)
+      draw(sheetMesh, sheetPlace, MODE.label, () => {
+        gl.uniform2f(U.uSize, sheetSize[0], sheetSize[1])
+        gl.uniform1f(U.uReadable, te * 0.85)
+        gl.uniform1f(U.uSheer, 0.8)
+      })
+      gl.uniform1f(U.uSheer, 0)
+      gl.uniform1f(U.uReadable, 0)
       gl.enable(gl.CULL_FACE)
       gl.uniformMatrix4fv(U.uCab, false, model)
       gl.uniformMatrix4fv(U.uCabInv, false, invert(model))
@@ -796,7 +895,9 @@ export function createStage(
         gl.uniform1f(U.uFoldR, foldR)
         gl.uniform1f(U.uFoldLift, (FOLD_R + foldR) * foldE)
         gl.uniform1f(U.uReadable, pre === IDENTITY ? pe * 0.92 : 0)
+        gl.uniform1f(U.uSheer, 1)
       })
+      gl.uniform1f(U.uSheer, 0)
       gl.uniform1i(U.uPage, 0)
       gl.uniform1f(U.uLeafZ, 0)
       gl.uniform1f(U.uFold, 0)
@@ -906,6 +1007,7 @@ export function createStage(
 
     drawTag(identity())
     drawPaper(IDENTITY)
+    drawTypeSheet()
 
     // tell the browser where each panel is, so hit testing follows the drawing
     const vp = new Float32Array([W / 2, 0, 0, 0, 0, -H / 2, 0, 0, 0, 0, 1, 0, W / 2, H / 2, 0, 1])
@@ -927,6 +1029,13 @@ export function createStage(
     // ...and the tag, which lives in the room rather than on the radio
     const tagFrom = mul(translate(-0.5, 0.5, 0), scale(1 / TAG.w, -1 / TAG.h, 1))
     cv.updateElementGeometry(tag.el, { canvasTransform: DOMMatrix.fromFloat32Array(mul(toScreen, tag.place, tagFrom)) })
+    // the typewriter's sheet (flat for hit testing: its curl is slight); out of
+    // reach while the paper or the radio is in your hands
+    if (ps.held || pf > 0.05 || focused) cv.clearElementGeometry?.(typePage.el)
+    else {
+      const sheetFrom = mul(translate(-0.5, 0.5, 0), scale(1 / TYPE_PAGE.w, -1 / TYPE_PAGE.h, 1))
+      cv.updateElementGeometry(typePage.el, { canvasTransform: DOMMatrix.fromFloat32Array(mul(toScreen, sheetPlace, sheetFrom)) })
+    }
     // only the open pages are where you can click; the rest are out of reach.
     // A right-hand page lies where the sheet does; a left-hand page is the back
     // of a turned sheet, one page width to the left.
@@ -1017,6 +1126,7 @@ export function createStage(
   cv.requestPaint()
 
   return () => {
+    stopListening()
     disposed = true
     window.removeEventListener("keydown", onKey)
     canvas.removeEventListener("paint", onPaint)

@@ -31,4 +31,5 @@ export const MODE = {
   window: 19,
   fire: 20,
   black: 21,
+  tint: 22,
 } as const

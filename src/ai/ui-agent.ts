@@ -12,6 +12,8 @@
 //   - WebMCP: in a browser with document.modelContext (such as ChatGPT's
 //     built-in browser), the same three tools are registered for its agent.
 import { agentTools, createAgent, registerTools } from "@ui-sdk/react/agent"
+import { paperStore } from "@/ui/paperStore"
+import { askOnThePage, typewriterStore } from "@/ui/typewriterStore"
 
 export type UiAgent = ReturnType<typeof createAgent>
 
@@ -20,11 +22,20 @@ let agent: UiAgent | null = null
 /** The page's one bridge, created on first use. */
 export function getUiAgent(): UiAgent {
   agent ??= createAgent({
-    // An agent may tune, switch bands and set the volume freely, but
-    // switching the radio off is the person's call.
-    allow: (step) => {
+    // An agent may tune, switch bands, set the volume and turn the paper's
+    // pages freely. Switching the radio off, and anything marked
+    // data-agent-confirm (posting a letter), is the person's call: asked on
+    // the typewriter's page when they're sat at it, in a dialog otherwise.
+    allow: (step, { signal }) => {
       const off = step.label === "Band" && step.action === "setValue" && String(step.args[0]).toUpperCase() === "OFF"
-      return off ? window.confirm("An assistant wants to switch the radio off. Allow it?") : true
+      const needs = off ? "Switches the radio off" : step.confirm
+      if (!needs) return true
+      if (typewriterStore.get().open) {
+        // the question is on the typewriter's page: bring the visitor back to it
+        paperStore.set({ held: false })
+        return askOnThePage(needs, signal)
+      }
+      return window.confirm(`An assistant wants to do this: ${needs}. Allow it?`)
     },
   })
   return agent

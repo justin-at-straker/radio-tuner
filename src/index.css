@@ -409,6 +409,7 @@ button.dial-station:focus-visible {
   padding: 9px 30px;
   border: 1px solid rgba(240, 161, 74, 0.6);
   border-radius: 3px;
+  position: relative;
   color: #f3dcb0;
   font-family: "Courier Prime", monospace;
   font-size: 14px;
@@ -440,28 +441,50 @@ button.dial-station:focus-visible {
 
 .tag {
   box-sizing: border-box;
-  width: 200px;
-  height: 112px;
-  padding: 30px 16px 10px;
+  width: 140px;
+  height: 110px;
+  padding: 26px 8px 8px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  color: #3a2410;
+  gap: 5px;
+  position: relative;
+  color: #f3ead2;
   text-decoration: none;
+  text-align: center;
+  /* a teabag's tag: a small card in the brand's colour, its corners clipped,
+     the string threaded through two punched holes at the top */
   background:
-    radial-gradient(120% 90% at 30% 20%, rgba(255, 255, 255, 0.35), transparent 60%),
-    linear-gradient(170deg, #f1e3c2, #e2cd9f);
-  /* a luggage-tag shape with a punched hole for the ribbon */
-  clip-path: polygon(22% 0, 78% 0, 100% 22%, 100% 100%, 0 100%, 0 22%);
-  -webkit-mask: radial-gradient(circle at 50% 13px, transparent 6px, #000 6.5px);
-  mask: radial-gradient(circle at 50% 13px, transparent 6px, #000 6.5px);
+    radial-gradient(120% 90% at 30% 15%, rgba(255, 255, 255, 0.16), transparent 60%),
+    linear-gradient(170deg, #6a8f38, #557a2a);
+  clip-path: polygon(12px 0, calc(100% - 12px) 0, 100% 12px, 100% calc(100% - 12px), calc(100% - 12px) 100%, 12px 100%, 0 calc(100% - 12px), 0 12px);
+  -webkit-mask:
+    radial-gradient(circle at calc(50% - 7px) 11px, transparent 2.6px, #000 3.2px),
+    radial-gradient(circle at calc(50% + 7px) 11px, transparent 2.6px, #000 3.2px);
+  -webkit-mask-composite: source-in;
+  mask:
+    radial-gradient(circle at calc(50% - 7px) 11px, transparent 2.6px, #000 3.2px),
+    radial-gradient(circle at calc(50% + 7px) 11px, transparent 2.6px, #000 3.2px);
+  mask-composite: intersect;
+}
+.tag::before {
+  /* the string's knot, looped through the holes */
+  content: "";
+  position: absolute;
+  top: 8px;
+  left: calc(50% - 8px);
+  width: 16px;
+  height: 7px;
+  border: 1.5px solid #f6f2e8;
+  border-bottom: 0;
+  border-radius: 8px 8px 0 0;
 }
 .tag-mark {
-  width: 38px;
-  height: 38px;
+  width: 30px;
+  height: 30px;
   flex: none;
-  fill: #2a1a0c;
+  fill: #f3ead2;
 }
 .tag-text {
   display: flex;
@@ -489,7 +512,9 @@ button.dial-station:focus-visible {
   font-family: "Courier Prime", monospace;
   font-size: 13px;
   font-weight: 700;
-  color: #9b1c14;
+  color: #f3ead2;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 .tag:hover .tag-link,
 .tag:focus-visible .tag-link {
@@ -1080,4 +1105,208 @@ button.dial-station:focus-visible {
 }
 .listings td {
   padding: 3px 0;
+}
+
+/* ---------------------------------------------------------------- the typewriter */
+
+/* the drawable: exactly the sheet; a pointer while it rests (click to sit at it) */
+.stage > .type-sheet {
+  width: 600px;
+  height: 520px;
+  cursor: pointer;
+}
+.stage > .type-sheet[data-open] {
+  cursor: text;
+}
+.tw-page {
+  box-sizing: border-box;
+  width: 600px;
+  height: 520px;
+  padding: 22px 46px 18px;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 90% at 40% 30%, rgba(255, 255, 255, 0.3), transparent 65%),
+    linear-gradient(180deg, #ebe4d2, #f2ecdd 70%, #e6dcc6);
+  color: #1b1712;
+  font-family: "Courier Prime", "Courier New", monospace;
+  font-size: 17px;
+  line-height: 1.45;
+}
+/* like a real machine: the newest line sits at the platen, older ones roll up and away */
+.tw-roll {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  overflow: hidden;
+}
+.tw-line {
+  margin: 0 0 10px;
+  white-space: pre-wrap;
+  /* a typewriter's ink: a touch uneven */
+  text-shadow: 0 0 0.4px currentColor;
+}
+.tw-head {
+  color: #5a4d3c;
+  border-bottom: 1px dashed rgba(27, 23, 18, 0.35);
+  padding-bottom: 8px;
+}
+/* the visitor types in the red half of the ribbon */
+.tw-asked {
+  color: #9b1c14;
+}
+.tw-asked::before {
+  content: "> ";
+}
+.tw-did {
+  color: #6b5a44;
+  font-size: 15px;
+}
+.tw-thinking {
+  color: #6b5a44;
+  letter-spacing: 0.2em;
+}
+.tw-confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 12px;
+  margin-bottom: 10px;
+}
+.tw-confirm .tw-line {
+  flex-basis: 100%;
+  margin: 0;
+}
+.tw-key {
+  font: 700 14px/1 "Courier Prime", monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #1b1712;
+  background: #f6f1e4;
+  border: 1.5px solid #1b1712;
+  border-radius: 999px;
+  padding: 7px 14px;
+  cursor: pointer;
+}
+.tw-key:focus-visible,
+.tw-input:focus-visible {
+  outline: 2px solid #9b1c14;
+  outline-offset: 2px;
+}
+.tw-field {
+  margin: 0;
+}
+.tw-input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  border: 0;
+  border-top: 1px solid rgba(27, 23, 18, 0.25);
+  padding: 8px 0 2px;
+  background: transparent;
+  color: #9b1c14;
+  font: inherit;
+  resize: none;
+  caret-color: #9b1c14;
+  field-sizing: content;
+  max-height: 5.8em;
+}
+.tw-input::placeholder {
+  color: rgba(155, 28, 20, 0.45);
+}
+
+/* ---------------------------------------------------------------- the portfolio menu */
+
+.menu {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 20px;
+  background: linear-gradient(180deg, rgba(20, 12, 6, 0.78), rgba(20, 12, 6, 0));
+  color: #f1e3c2;
+  font-family: Jost, sans-serif;
+  transition: opacity 0.6s ease;
+}
+.menu[data-hidden] {
+  opacity: 0;
+}
+.menu-name {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.menu-name strong {
+  font-family: "Old Standard TT", Georgia, serif;
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+.menu-name span {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(241, 227, 194, 0.7);
+}
+.menu-items {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px;
+}
+.menu-item {
+  padding: 7px 12px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: none;
+  color: rgba(241, 227, 194, 0.82);
+  font: 500 13px/1 Jost, sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+.menu-item:hover {
+  color: #fff6e2;
+  background: rgba(241, 227, 194, 0.1);
+}
+.menu-item[aria-current="page"] {
+  color: #fff6e2;
+  border-color: rgba(241, 227, 194, 0.55);
+}
+.menu-item:focus-visible,
+.menu-name:focus-visible {
+  outline: 2px solid #e8a44a;
+  outline-offset: 2px;
+}
+@media (max-width: 760px) {
+  .menu {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 10px 16px;
+  }
+  .menu-items {
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    max-width: 100%;
+  }
+  .menu-item {
+    white-space: nowrap;
+  }
 }
