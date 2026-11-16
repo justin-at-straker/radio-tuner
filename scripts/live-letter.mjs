@@ -1,0 +1,17 @@
+// A letter posted on the live site, from a real browser: BotID should let it through.
+import { chromium } from "playwright"
+const browser = await chromium.launch({ channel: "chrome", headless: false })
+const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
+page.on("response", async (r) => r.url().endsWith("/api/contact") && console.log("api/contact:", r.status(), await r.text().catch(() => "")))
+page.on("request", (r) => r.url().endsWith("/api/contact") && console.log("botid headers sent:", Object.keys(r.headers()).filter((h) => /human|botid|x-is/i.test(h)), "| webdriver flag present"))
+await page.goto("https://justin-cole.vercel.app/")
+await page.locator(".loading .enter").click({ timeout: 120000 })
+await page.waitForTimeout(2000)
+await page.getByRole("button", { name: "Write to me", exact: true }).click()
+await page.waitForTimeout(2500)
+await page.getByRole("textbox", { name: "Your name" }).fill("Live site test")
+await page.getByRole("textbox", { name: "Your email" }).fill("hello@coledigital.co.nz")
+await page.getByRole("textbox", { name: "Your letter" }).fill("A test letter posted from the live site in a real browser, checking BotID lets people through. Safe to delete.")
+await page.getByRole("button", { name: "Post the letter" }).click()
+await page.waitForTimeout(8000)
+await browser.close()

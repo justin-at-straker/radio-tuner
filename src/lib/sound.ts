@@ -309,6 +309,7 @@ function installSound() {
     (event) => {
       if (event.isComposing || event.metaKey || event.ctrlKey || event.altKey) return
       if (!(event.target as Element | null)?.closest?.(typing)) return
+      if ((event.target as Element).closest("[data-own-sound]")) return // e.g. the typewriter: real recordings
       const voice = keyVoice(event.key)
       if (!voice) return
       // A held key auto-repeating ticks softly instead of clacking.
@@ -321,6 +322,7 @@ function installSound() {
     (event) => {
       if (event.isComposing || event.metaKey || event.ctrlKey || event.altKey) return
       if (!(event.target as Element | null)?.closest?.(typing)) return
+      if ((event.target as Element).closest("[data-own-sound]")) return // e.g. the typewriter: real recordings
       if (keyVoice(event.key)) play("type-up")
     },
     true,

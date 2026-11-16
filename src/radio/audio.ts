@@ -4,6 +4,7 @@ const ALL_PROGRAMMES = [...new Set(BANDS.flatMap((b) => b.stations.map((s) => s.
 import { radio } from "./store"
 import { startFireplace, type Fireplace } from "./fireplace"
 import { startPaperSounds, type PaperSounds } from "./paperSounds"
+import { startTypewriterSounds } from "./typewriterSounds"
 import { createRoomAcoustics, type RoomAcoustics } from "./acoustics"
 
 // Everything you hear is made here, live: no samples. Each programme is a
@@ -16,6 +17,7 @@ import { createRoomAcoustics, type RoomAcoustics } from "./acoustics"
 let ctx: AudioContext | null = null
 let fireplace: Fireplace | null = null
 let paperSounds: PaperSounds | null = null
+let typewriterSounds: { stop(): void } | null = null
 let acoustics: RoomAcoustics | null = null
 let closeness = 0
 
@@ -126,6 +128,8 @@ export function startAudio() {
   fireplace = startFireplace(c)
   // ...and the newspaper, as its pages turn
   paperSounds = startPaperSounds(c)
+  // ...and the typewriter, as you type and as it answers
+  typewriterSounds = startTypewriterSounds(c)
   analyser = c.createAnalyser()
   analyser.fftSize = 1024
   master = c.createGain()
@@ -342,6 +346,8 @@ export function stopAudio() {
   fireplace = null
   paperSounds?.stop()
   paperSounds = null
+  typewriterSounds?.stop()
+  typewriterSounds = null
   acoustics = null
   void ctx?.close()
   ctx = null

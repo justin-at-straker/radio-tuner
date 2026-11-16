@@ -5,7 +5,7 @@ import { Field, FieldLabel } from "@ui-sdk/react/field"
 import { Textarea } from "@ui-sdk/react/textarea"
 import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls, type UIMessage } from "ai"
 import { getUiAgent } from "@/ai/ui-agent"
-import { typeSound } from "@/lib/sound"
+import { typewriterSound } from "@/radio/typewriterSounds"
 import { typewriterStore, useTypewriter } from "./typewriterStore"
 
 // The typewriter on the coffee table: a sheet of paper you type a question
@@ -60,16 +60,27 @@ function linesOf(m: UIMessage) {
   return out
 }
 
-/** Types text out at a typist's pace, with a keystroke for each character. */
+/** About where the margin bell rings: a few characters before the end of a line on the page. */
+const BELL_AT = 48
+
+/** Types text out at a typist's pace, with a real keystroke for each character:
+ *  the carriage returned before a new line, the space bar's thud, and the
+ *  margin bell as a line nears its end. */
 function useTypedOut(full: string, active: boolean) {
   const [n, setN] = React.useState(active ? 0 : full.length)
   React.useEffect(() => {
     if (n >= full.length) return
-    const id = setTimeout(() => {
-      const ch = full[n]
-      typeSound(ch === " " ? "type-space" : ch === "\n" ? "type-big" : "type")
-      setN((v) => Math.min(full.length, v + 1))
-    }, full[n] === " " ? 42 : full[n] === "." ? 160 : 26 + Math.random() * 30)
+    const ch = full[n]
+    const id = setTimeout(
+      () => {
+        if (n === 0) typewriterSound("return", 0.6)
+        if (ch === "\n") typewriterSound("return", 0.8)
+        else typewriterSound(ch === " " ? "space" : "key")
+        if (n - full.lastIndexOf("\n", n - 1) - 1 === BELL_AT) typewriterSound("bell", 0.7)
+        setN((v) => Math.min(full.length, v + 1))
+      },
+      n === 0 ? 420 : ch === " " ? 70 : ch === "." || ch === "," ? 190 : 55 + Math.random() * 45,
+    )
     return () => clearTimeout(id)
   }, [n, full])
   return full.slice(0, n)
@@ -114,7 +125,8 @@ export const TypewriterPage = React.forwardRef<HTMLDivElement>(function Typewrit
   const send = () => {
     const text = draft.trim()
     if (!text || busy) return
-    typeSound("type-big") // the carriage return
+    typewriterSound("bell", 0.6) // ding, and the carriage back across
+    setTimeout(() => typewriterSound("return"), 120)
     setDraft("")
     void sendMessage({ text })
   }
@@ -169,6 +181,7 @@ export const TypewriterPage = React.forwardRef<HTMLDivElement>(function Typewrit
             <FieldLabel className="visually-hidden">Type your question, then press Enter</FieldLabel>
             <Textarea
               className="tw-input"
+              data-own-sound=""
               rows={1}
               value={draft}
               placeholder={open ? "Type here, then press Enter" : ""}
@@ -177,7 +190,13 @@ export const TypewriterPage = React.forwardRef<HTMLDivElement>(function Typewrit
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault()
                   send()
+                  return
                 }
+                if (e.repeat || e.ctrlKey || e.metaKey || e.altKey) return
+                if (e.key === " ") typewriterSound("space")
+                else if (e.key === "Enter") typewriterSound("return", 0.8)
+                else if (e.key.length === 1) typewriterSound("key")
+                else if (e.key === "Backspace") typewriterSound("key", 0.6)
               }}
             />
           </Field>
