@@ -2,7 +2,7 @@
 
 **Live:** https://justin-cole.vercel.app (Chrome or Edge 157+)
 
-![The radio on a coffee table by the fire](docs/screenshot.jpg)
+![The radio on a coffee table by the fire, tuned to Christmas Vinyl, with the evening paper folded beside it](docs/screenshot.jpg)
 
 A 1950s valve radio on a coffee table by the fire, in the browser. Its dial, station plate, piano keys and knobs are real HTML drawn onto a WebGL radio with **HTML-in-Canvas**, and they're built with **ui-sdk**, so people (mouse, keyboard, screen reader) and AI agents can all use them.
 
