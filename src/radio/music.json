@@ -270,5 +270,37 @@
       "source": "https://commons.wikimedia.org/wiki/File:Frank_Ferera,_Helen_Louise_-_Hawaiian_Portuguese_Tango.ogg",
       "duration": 189
     }
+  ],
+  "opera": [
+    {
+      "src": "/music/opera/caruso-avemaria.opus",
+      "label": "Enrico Caruso: Ave Maria",
+      "title": "Caruso-AveMaria",
+      "performer": "",
+      "date": "",
+      "licence": "Public domain",
+      "source": "https://commons.wikimedia.org/wiki/File:Caruso-AveMaria.ogg",
+      "duration": 250
+    },
+    {
+      "src": "/music/opera/enrico-caruso-geraldine-farrar-jules-massenet-manon-on-l-app.opus",
+      "label": "Caruso and Farrar: Manon, On l'appelle Manon (1912)",
+      "title": "Enrico Caruso - Geraldine Farrar - Jules Massenet - Manon - On L'appelle Manon",
+      "performer": "Jules Massenet (1842–1912) Enrico Caruso (1873–1921) Geraldine Farrar (1882–1967)",
+      "date": "30 December 1912, in New York – http://victor.library.ucsb.edu/matrixDetail.php?",
+      "licence": "Public domain",
+      "source": "https://commons.wikimedia.org/wiki/File:Enrico_Caruso_-_Geraldine_Farrar_-_Jules_Massenet_-_Manon_-_On_L%27appelle_Manon.ogg",
+      "duration": 251
+    },
+    {
+      "src": "/music/opera/caruso-rossini-ladanza.opus",
+      "label": "Enrico Caruso: Rossini, La danza",
+      "title": "Caruso-Rossini-LaDanza",
+      "performer": "",
+      "date": "",
+      "licence": "Public domain",
+      "source": "https://commons.wikimedia.org/wiki/File:Caruso-Rossini-LaDanza.ogg",
+      "duration": 196
+    }
   ]
 }

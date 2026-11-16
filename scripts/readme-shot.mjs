@@ -1,0 +1,14 @@
+// The README screenshot: the radio on, tuned to Carols, resting by the fire.
+import { chromium } from "playwright"
+const url = process.argv[2] ?? "http://localhost:5199/"
+const browser = await chromium.launch({ channel: "chrome", args: ["--autoplay-policy=no-user-gesture-required"] })
+const page = await browser.newPage({ viewport: { width: 1600, height: 900 } })
+page.on("pageerror", (e) => console.log("pageerror:", e.message))
+await page.goto(url)
+await page.waitForFunction(() => document.querySelector(".loading")?.hasAttribute("data-done"), null, { timeout: 90000 })
+await page.evaluate(() => window.agent.act({ steps: [{ ref: "Station", action: "setValue", args: ["Carols"] }] }))
+await page.waitForTimeout(4000)
+await page.mouse.move(1590, 10)
+await page.screenshot({ path: process.argv[3] ?? "docs/screenshot.jpg", type: "jpeg", quality: 85 })
+console.log("plate:", (await page.locator(".plate").innerText()).replace(/\n/g, " / "))
+await browser.close()

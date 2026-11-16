@@ -1,5 +1,9 @@
 # Radio Tuner
 
+**Live:** https://radio-tuner.vercel.app (Chrome or Edge 157+)
+
+![The radio on a coffee table by the fire, tuned to the Carols station](docs/screenshot.jpg)
+
 A 1950s valve radio on a coffee table by the fire, in the browser. Its dial, station plate, piano keys and knobs are real HTML drawn onto a WebGL radio with **HTML-in-Canvas**, and they're built with **ui-sdk**, so people (mouse, keyboard, screen reader) and AI agents can all use them.
 
 - **Dial and controls are live HTML.** The text selects, the knobs take the keyboard, and a screen reader can read the dial, even when the radio is turned upside down. Each frame, the browser is told exactly where every panel landed in 3D (a full perspective matrix), so clicks and focus follow the drawing.

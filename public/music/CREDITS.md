@@ -46,3 +46,9 @@ Every recording here is in the public domain: 78s published 1907 to 1925, and re
 ## hawaii
 
 - Frank Ferera and Helen Louise: Hawaiian Portuguese Tango (1916). Public domain. [Source](https://commons.wikimedia.org/wiki/File:Frank_Ferera,_Helen_Louise_-_Hawaiian_Portuguese_Tango.ogg)
+
+## opera
+
+- Enrico Caruso: Ave Maria. Public domain. [Source](https://commons.wikimedia.org/wiki/File:Caruso-AveMaria.ogg)
+- Caruso and Farrar: Manon, On l'appelle Manon (1912). Public domain. [Source](https://commons.wikimedia.org/wiki/File:Enrico_Caruso_-_Geraldine_Farrar_-_Jules_Massenet_-_Manon_-_On_L%27appelle_Manon.ogg)
+- Enrico Caruso: Rossini, La danza. Public domain. [Source](https://commons.wikimedia.org/wiki/File:Caruso-Rossini-LaDanza.ogg)
