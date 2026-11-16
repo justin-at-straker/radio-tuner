@@ -266,7 +266,7 @@ function ProjectsPage() {
           The radio on this very table is a working demonstration: a 1950s valve
           set in WebGL whose dial, keys and knobs are live HTML drawn with
           HTML-in-Canvas, built with ui-sdk, and operable by AI agents through
-          its agent bridge. Every station plays public-domain records.{" "}
+          its agent bridge. The music is live radio, from RNZ in Auckland to Hilversum and Maui.{" "}
           <a
             href="https://github.com/justin-at-straker/radio-tuner"
             target="_blank"

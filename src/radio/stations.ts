@@ -1,9 +1,16 @@
 // The bands and what's on them. Every name printed on the dial is a real
-// piece of HTML text, and every one of them is on air.
+// piece of HTML text, and every one of them is on air. The music is live
+// radio: real stations, each one once, streamed while you're tuned near them
+// (RNZ on its real Auckland frequencies, rnz.co.nz/listen). The forecast,
+// the Morse and the time pips are the radio's own.
 
 export type BandId = "MW" | "SW" | "FM"
 
-export type Programme = "jazz" | "dance" | "orchestra" | "weather" | "morse" | "pips" | "lounge" | "christmas" | "hawaii" | "opera"
+export type Programme =
+  // the radio's own
+  | "weather" | "morse" | "pips"
+  // live stations
+  | "rnzNational" | "rnzConcert" | "twenties" | "jazz24" | "npoKlassiek" | "kpoa" | "opera" | "christmasVinyl" | "classicVinyl"
 
 export interface Station {
   name: string
@@ -13,6 +20,21 @@ export interface Station {
   programme: Programme
   /** A line for the listings card. */
   blurb?: string
+}
+
+/** The live stations, and where they stream from: HTTPS and CORS-open, so they
+ *  go through the radio's valves and into the room like everything else.
+ *  Each was checked in Chrome through Web Audio (scripts/live-probe.mjs). */
+export const LIVE: Partial<Record<Programme, string>> = {
+  rnzNational: "https://radionz.streamguys1.com/national/national/national/national-mainstream/chunks.m3u8",
+  rnzConcert: "https://radionz.streamguys1.com/concert/concert/concert/concert-mainstream/chunks.m3u8",
+  twenties: "https://streaming.positivity.radio/pr/1920/icecast.audio",
+  jazz24: "https://knkx-live-a.edge.audiocdn.com/6285_128k",
+  npoKlassiek: "https://icecast.omroep.nl/radio4-bb-mp3",
+  kpoa: "https://pacificmedia.cdnstream1.com/2794_64.aac",
+  opera: "https://live.radioclasic.com/listen/radio_clasic_opera/live.mp3",
+  christmasVinyl: "https://icecast.walmradio.com:8443/christmas",
+  classicVinyl: "https://icecast.walmradio.com:8443/classic",
 }
 
 export interface Band {
@@ -42,10 +64,11 @@ export const BANDS: Band[] = [
     kind: "am",
     stations: [
       { name: "Wellington", freq: 560, programme: "weather", blurb: "Coastal forecast, read at dictation speed" },
-      { name: "Christchurch", freq: 700, programme: "dance", blurb: "The dance band hour" },
-      { name: "Auckland", freq: 850, programme: "jazz", blurb: "Night Jazz, with the lights down low" },
-      { name: "Hilversum", freq: 1007, programme: "orchestra", blurb: "The evening concert" },
-      { name: "Honolulu", freq: 1290, programme: "hawaii", blurb: "Steel guitars from the islands" },
+      { name: "RNZ National", freq: 756, programme: "rnzNational", blurb: "Live from Auckland: news, talk and the day's stories" },
+      { name: "Jazz24", freq: 880, programme: "jazz24", blurb: "Jazz24, Seattle: jazz around the clock" },
+      { name: "Hilversum", freq: 1007, programme: "npoKlassiek", blurb: "NPO Klassiek, live from Hilversum" },
+      { name: "The Twenties", freq: 1160, programme: "twenties", blurb: "Positively 1920's: dance bands and crooners" },
+      { name: "Lahaina", freq: 1340, programme: "kpoa", blurb: "KPOA 93.5, Maui: Hawaiian music" },
     ],
   },
   {
@@ -60,7 +83,7 @@ export const BANDS: Band[] = [
     stations: [
       { name: "Ship", freq: 7.03, programme: "morse", blurb: "A ship somewhere, keying its position in Morse" },
       { name: "Time", freq: 10.0, programme: "pips", blurb: "The time signal: a pip each second, a long one on the minute" },
-      { name: "Rome", freq: 13.6, programme: "opera", blurb: "Opera from the great tenors" },
+      { name: "Bucharest", freq: 13.6, programme: "opera", blurb: "Clasic Radio Opera, Bucharest: arias all day" },
     ],
   },
   {
@@ -73,9 +96,9 @@ export const BANDS: Band[] = [
     width: 0.01,
     kind: "fm",
     stations: [
-      { name: "Concert", freq: 91.8, programme: "orchestra", blurb: "Concert FM: the same strings, without the hiss" },
-      { name: "Carols", freq: 97.4, programme: "christmas", blurb: "Carols for Christmas" },
-      { name: "Lounge", freq: 103.6, programme: "lounge", blurb: "Piano rolls until late" },
+      { name: "RNZ Concert", freq: 92.6, programme: "rnzConcert", blurb: "Live: RNZ Concert, classical from the Sky Tower" },
+      { name: "Christmas Vinyl", freq: 97.4, programme: "christmasVinyl", blurb: "Christmas Vinyl HD: carols and crooners, off the record" },
+      { name: "Classic Vinyl", freq: 103.6, programme: "classicVinyl", blurb: "Classic Vinyl HD: standards from the 30s to the 60s" },
     ],
   },
 ]

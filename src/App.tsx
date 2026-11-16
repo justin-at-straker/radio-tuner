@@ -147,7 +147,7 @@ export function App() {
             ? "Drag to turn it over · Shift-drag to roll · Scroll to bring it closer · Double-click the room to put it down"
             : "Double-click the radio, or the newspaper, to pick it up"}
         <br />
-        Music: public domain recordings via Wikimedia Commons
+        Music: live radio, streamed from the stations themselves
       </div>
       <PaperAnnouncer />
       <Loading

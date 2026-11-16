@@ -1,5 +1,4 @@
-import music from "./music.json"
-import { BANDS, bandById, freqAt, reception, type Programme } from "./stations"
+import { BANDS, bandById, freqAt, LIVE, reception, type Programme } from "./stations"
 
 const ALL_PROGRAMMES = [...new Set(BANDS.flatMap((b) => b.stations.map((s) => s.programme)))]
 import { radio } from "./store"
@@ -42,43 +41,62 @@ let weatherVolume = 0
 /** What the scene needs each frame. */
 export const signal = { strength: 0, level: 0, station: null as string | null, programme: null as Programme | null, hiss: 0 }
 
-// ---------------------------------------------------------------- broadcasts
+// ---------------------------------------------------------------- live stations
 //
-// The music stations play real recordings: public domain 78s from 1916 to 1925,
-// via Wikimedia Commons (credits in public/music/CREDITS.md). Each station is
-// "live": it plays all the time from a random point in its playlist, so tuning
-// in lands you mid-song, and leaving doesn't pause it.
+// The RNZ stations stream for real. A live stream only runs while you're tuned
+// near it (and for a few seconds after, so sweeping past doesn't reconnect),
+// so nobody downloads radio they aren't listening to. Connecting sounds like
+// tuning in: mostly static until the audio arrives. A stream that fails is just
+// static on that spot of the dial.
 
-export interface Track {
-  src: string
-  title: string
-  performer: string
-  date: string
-  label: string
-  duration: number
+type LiveState = "idle" | "loading" | "playing" | "error"
+interface Live {
+  el: HTMLAudioElement
+  url: string
+  state: LiveState
+  lastWanted: number
 }
-const playlists = music as Partial<Record<Programme, Track[]>>
-export const nowPlaying = new Map<Programme, Track>()
+const lives = new Map<Programme, Live>()
 
-function startBroadcast(c: AudioContext, p: Programme, list: Track[], out: AudioNode) {
+function startLive(c: AudioContext, p: Programme, url: string, out: AudioNode) {
   const el = new Audio()
+  el.crossOrigin = "anonymous" // the streams send CORS headers; without this Web Audio hears silence
+  el.preload = "none"
   elements.push(el)
-  el.preload = "auto"
   c.createMediaElementSource(el).connect(out)
-  let i = Math.floor(Math.random() * list.length)
-  const play = (from: number) => {
-    const track = list[i]
-    el.src = track.src
-    nowPlaying.set(p, track)
-    el.addEventListener("loadedmetadata", () => (el.currentTime = from * el.duration), { once: true })
-    void el.play().catch(() => {})
+  const live: Live = { el, url, state: "idle", lastWanted: 0 }
+  el.addEventListener("playing", () => (live.state = "playing"))
+  el.addEventListener("waiting", () => live.state !== "idle" && (live.state = "loading"))
+  el.addEventListener("error", () => live.state !== "idle" && (live.state = "error"))
+  lives.set(p, live)
+}
+
+/** Connect the live streams you're near; let go of the ones you've left. */
+function tendLive(totals: Map<Programme, number>, on: boolean) {
+  const t = performance.now()
+  for (const [p, live] of lives) {
+    const wanted = on && (totals.get(p) ?? 0) > 0.02
+    if (wanted) {
+      live.lastWanted = t
+      if (live.state === "idle") {
+        live.state = "loading"
+        live.el.src = live.url // a fresh connection lands at the live edge
+        void live.el.play().catch(() => (live.state = "error"))
+      }
+    } else if (live.state !== "idle" && t - live.lastWanted > 8000) {
+      live.el.pause()
+      live.el.removeAttribute("src")
+      live.el.load()
+      live.state = "idle" // an error clears too: next time you tune in, it tries again
+    }
   }
-  el.addEventListener("ended", () => {
-    i = (i + 1) % list.length
-    // a breath of dead air between records
-    setTimeout(() => play(0), 1800)
-  })
-  play(0.05 + Math.random() * 0.6)
+}
+
+/** How much of a station's signal is really there: a live one connecting is mostly static. */
+const liveFactor = (p: Programme) => {
+  const live = lives.get(p)
+  if (!live) return 1
+  return live.state === "playing" ? 1 : live.state === "error" ? 0 : 0.25
 }
 
 function noiseBuffer(c: AudioContext, seconds = 2) {
@@ -154,8 +172,8 @@ export function startAudio() {
     g.gain.value = 0
     g.connect(bus)
     programmeGain.set(p, g)
-    const list = playlists[p]
-    if (list?.length) startBroadcast(c, p, list, g)
+    const url = LIVE[p]
+    if (url) startLive(c, p, url, g)
   }
   scheduler()
   timers.push(setInterval(scheduler, 100), setInterval(retune, 30))
@@ -177,11 +195,16 @@ function retune() {
   const totals = new Map<Programme, number>()
   for (const h of heard) {
     const p = h.station.programme!
+    h.strength *= liveFactor(p)
     totals.set(p, Math.max(totals.get(p) ?? 0, h.strength * qsb))
     if (h.strength > best.strength) best = { strength: h.strength, name: h.station.name, offset: h.offset, programme: p }
   }
   signal.programme = best.strength > 0.35 ? best.programme : null
   for (const [p, g] of programmeGain) g.gain.setTargetAtTime(totals.get(p) ?? 0, now, 0.04)
+  // live streams: wanted by where the dial is, not by how well they've come in yet
+  const nearLive = new Map<Programme, number>()
+  for (const h of reception(band, s.tune)) nearLive.set(h.station.programme, Math.max(nearLive.get(h.station.programme) ?? 0, h.strength))
+  tendLive(nearLive, s.power)
   const fm = band.kind === "fm"
   const hiss = fm ? Math.max(0, 1 - best.strength * 1.6) * 0.5 : (1 - best.strength * 0.85) * 0.35
   hissGain.gain.setTargetAtTime(hiss, now, 0.04)
@@ -208,7 +231,6 @@ function retune() {
 
 // ---------------------------------------------------------------- programmes
 
-const midi = (n: number) => 440 * Math.pow(2, (n - 69) / 12)
 let nextAt = new Map<Programme, number>()
 let step = new Map<Programme, number>()
 
@@ -216,7 +238,6 @@ function scheduler() {
   if (!ctx) return
   const ahead = ctx.currentTime + 0.3
   for (const p of Object.keys(generators) as Programme[]) {
-    if (playlists[p]?.length) continue // a real broadcast, not a synth
     let t = nextAt.get(p) ?? ctx.currentTime + 0.05
     while (t < ahead) {
       const i = step.get(p) ?? 0
@@ -243,44 +264,10 @@ function tone(c: AudioContext, out: AudioNode, t: number, f: number, dur: number
   o.stop(t + dur + 0.05)
 }
 
-let noiseBuf: AudioBuffer | null = null
-function hit(c: AudioContext, out: AudioNode, t: number, dur: number, freq: number, gain: number) {
-  noiseBuf ??= noiseBuffer(c, 1)
-  const n = c.createBufferSource()
-  n.buffer = noiseBuf
-  const f = c.createBiquadFilter()
-  f.type = "bandpass"
-  f.frequency.value = freq
-  f.Q.value = 0.8
-  const g = c.createGain()
-  g.gain.setValueAtTime(gain, t)
-  g.gain.exponentialRampToValueAtTime(0.0001, t + dur)
-  n.connect(f).connect(g).connect(out)
-  n.start(t, Math.random() * 0.5)
-  n.stop(t + dur + 0.05)
-}
-
-function kick(c: AudioContext, out: AudioNode, t: number, gain = 0.5) {
-  const o = c.createOscillator()
-  const g = c.createGain()
-  o.frequency.setValueAtTime(120, t)
-  o.frequency.exponentialRampToValueAtTime(45, t + 0.12)
-  g.gain.setValueAtTime(gain, t)
-  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.3)
-  o.connect(g).connect(out)
-  o.start(t)
-  o.stop(t + 0.35)
-}
 
 // Each returns how long until it wants calling again.
 type Generator = (c: AudioContext, out: AudioNode, t: number, i: number) => number
 
-const jazzChords = [
-  [62, 65, 69, 72], // Dm9-ish
-  [55, 65, 67, 71], // G13
-  [60, 64, 67, 71], // Cmaj7
-  [57, 61, 64, 67], // A7
-]
 const morseText = "CQ CQ DE ZL1RT ZL1RT 36S 174E QRV K   "
 const MORSE: Record<string, string> = {
   A: ".-", B: "-...", C: "-.-.", D: "-..", E: ".", F: "..-.", G: "--.", H: "....", I: "..", J: ".---", K: "-.-", L: ".-..", M: "--",
@@ -289,51 +276,8 @@ const MORSE: Record<string, string> = {
 }
 const morseSymbols = [...morseText].flatMap((ch) => (ch === " " ? ["  "] : [...(MORSE[ch] ?? ""), " "]))
 
-// Synth programmes: the real radio sounds (Morse, pips, the forecast carrier),
-// and a fallback for any music station whose records failed to download.
+// The radio's own programmes: Morse, the time pips, the forecast's carrier.
 const generators: Partial<Record<Programme, Generator>> = {
-  // Brushes, walking bass and soft electric-piano chords, swung.
-  jazz(c, out, t, i) {
-    const beat = 60 / 92
-    const bar = Math.floor(i / 4) % jazzChords.length
-    const chord = jazzChords[bar]
-    if (i % 4 === 0) chord.forEach((n) => tone(c, out, t, midi(n), beat * 3.6, { gain: 0.05, attack: 0.02 }))
-    if (i % 4 === 2) chord.slice(1).forEach((n) => tone(c, out, t + beat * 0.33, midi(n), beat * 1.2, { gain: 0.03 }))
-    const walk = [0, 3, 5, 7][i % 4]
-    tone(c, out, t, midi(chord[0] - 24 + walk), beat * 0.9, { type: "triangle", gain: 0.16 })
-    hit(c, out, t, 0.18, 6000, 0.05)
-    if (i % 2 === 1) hit(c, out, t + beat * 0.66, 0.08, 7000, 0.035)
-    return beat
-  },
-  // A bouncy dance band: four-on-the-floor, offbeat chords, a little brass line.
-  dance(c, out, t, i) {
-    const beat = 60 / 124
-    kick(c, out, t, 0.35)
-    if (i % 2 === 1) hit(c, out, t, 0.12, 2200, 0.12)
-    hit(c, out, t + beat / 2, 0.05, 8000, 0.04)
-    const roots = [65, 70, 72, 65]
-    const r = roots[Math.floor(i / 8) % 4]
-    ;[r, r + 4, r + 7].forEach((n) => tone(c, out, t + beat / 2, midi(n), 0.18, { type: "square", gain: 0.022 }))
-    tone(c, out, t, midi(r - 24), beat * 0.8, { type: "triangle", gain: 0.14 })
-    const tune = [77, 0, 79, 81, 0, 77, 74, 0]
-    const n = tune[i % 8]
-    if (n) tone(c, out, t, midi(n), beat * 0.9, { type: "sawtooth", gain: 0.02, attack: 0.03 })
-    return beat
-  },
-  // Long detuned string chords, slowly changing.
-  orchestra(c, out, t, i) {
-    const chords = [
-      [48, 55, 64, 67, 72],
-      [45, 52, 60, 64, 69],
-      [41, 53, 57, 65, 72],
-      [43, 50, 59, 62, 67],
-    ]
-    const dur = 4.2
-    chords[i % 4].forEach((n, k) => {
-      for (const d of [-7, 7]) tone(c, out, t, midi(n), dur + 1.4, { type: "sawtooth", gain: 0.012 - k * 0.001, attack: 1.4, detune: d })
-    })
-    return dur
-  },
   // Spoken by the browser's voice; here only a faint carrier hum.
   weather(c, out, t) {
     tone(c, out, t, 100, 2.1, { gain: 0.015, attack: 0.5 })
@@ -350,23 +294,6 @@ const generators: Partial<Record<Programme, Generator>> = {
     const long = i % 60 === 59
     tone(c, out, t, 1000, long ? 0.5 : 0.1, { gain: 0.2, attack: 0.003 })
     return 1
-  },
-  lounge(c, out, t, i) {
-    const beat = 60 / 76
-    const chords = [
-      [57, 60, 64, 67],
-      [53, 57, 60, 64],
-      [50, 53, 57, 60],
-      [52, 56, 59, 62],
-    ]
-    const ch = chords[Math.floor(i / 4) % 4]
-    if (i % 4 === 0) ch.forEach((n) => tone(c, out, t, midi(n), beat * 4, { gain: 0.045, attack: 0.01 }))
-    if (i % 4 === 0) tone(c, out, t, midi(ch[0] - 12), beat * 3, { type: "triangle", gain: 0.12 })
-    if (i % 2 === 0) kick(c, out, t, 0.18)
-    hit(c, out, t + beat / 2, 0.06, 9000, 0.025)
-    const mel = [76, 74, 72, 74, 76, 79, 76, 72]
-    if (i % 2 === 1) tone(c, out, t, midi(mel[(i >> 1) % 8]), beat * 1.5, { type: "triangle", gain: 0.05 })
-    return beat
   },
 }
 
@@ -409,6 +336,7 @@ export function stopAudio() {
     el.load()
   }
   elements.length = 0
+  lives.clear()
   if (typeof speechSynthesis !== "undefined") speechSynthesis.cancel()
   fireplace?.stop()
   fireplace = null
@@ -428,3 +356,7 @@ export const currentFreqLabel = () => {
   const s = radio.get()
   return freqAt(bandById(s.band), s.tune)
 }
+
+// for the test scripts: the engine's state, in development only
+if (import.meta.env.DEV && typeof window !== "undefined")
+  (window as unknown as { __radio: object }).__radio = { signal, lives, power: () => radio.get().power }

@@ -6,7 +6,7 @@ import { BANDS, bandById, formatFreq, freqAt, reception, tuneAt, type BandId } f
 import { createParts } from "@ui-sdk/react/primitive"
 import { station } from "./station"
 import { radio, useRadio } from "@/radio/store"
-import { nowPlaying, signal, startAudio } from "@/radio/audio"
+import { signal, startAudio } from "@/radio/audio"
 
 // The three pieces of HTML the 3D radio wears. They're laid out here at a
 // fixed size in CSS pixels (400 px to one unit of the cabinet), and the scene
@@ -31,6 +31,11 @@ const STATION_ITEMS = BANDS.flatMap((band) =>
   band.stations.map((st) => ({ value: st.name, label: `${st.name}: ${st.blurb ?? st.programme}`, band, station: st })),
 )
 const stationParts = createParts(station, { root: "div", item: "button" })
+
+/** Where a station's name hangs off its mark (as a share of its own width):
+ *  centred, except near the ends of the scale, where it leans inwards so it
+ *  never runs past the edge of the glass. */
+const labelAnchor = (t: number) => (t < 0.1 ? -50 * (t / 0.1) : t > 0.9 ? -50 - 50 * ((t - 0.9) / 0.1) : -50)
 
 /** The station the dial is on now (by position, so it works before the valves warm). */
 function tunedStation(bandId: BandId, tune: number) {
@@ -59,8 +64,7 @@ export function Dial() {
   }, [])
   const tuned = s.power ? tunedStation(s.band, s.tune) : ""
   const item = STATION_ITEMS.find((i) => i.value === tuned)
-  const track = item ? nowPlaying.get(item.station.programme) : undefined
-  const playing = !s.power ? "The radio is off" : !item ? "Between stations" : track ? track.label : (item.station.blurb ?? "")
+  const playing = !s.power ? "The radio is off" : !item ? "Between stations" : (item.station.blurb ?? "")
   return (
     <stationParts.Root
       className="dial"
@@ -85,14 +89,13 @@ export function Dial() {
                 {n}
               </span>
             ))}
-            {band.stations.map((st, i) => (
+            {band.stations.map((st) => (
               <stationParts.Item
                 key={st.name}
                 value={st.name}
                 className="dial-station"
                 aria-label={`${st.name}, ${band.label} ${formatFreq(band, st.freq)}`}
-                data-low={i % 2 === 1 || undefined}
-                style={{ left: `${tuneAt(band, st.freq) * 100}%` }}
+                style={{ left: `${tuneAt(band, st.freq) * 100}%`, transform: `translateX(${labelAnchor(tuneAt(band, st.freq))}%)` }}
               >
                 {st.name}
               </stationParts.Item>
@@ -186,7 +189,6 @@ export function Controls() {
     return () => clearInterval(id)
   }, [])
   const station = band.stations.find((st) => st.name === signal.station)
-  const track = signal.programme ? nowPlaying.get(signal.programme) : undefined
   return (
     <div className="controls">
       <RadioKnob
@@ -204,7 +206,7 @@ export function Controls() {
                 {formatFreq(band, freqAt(band, s.tune))}
                 {station && ` · ${station.name}`}
               </b>
-              <span>{station ? (track?.label ?? station.blurb) : "Between stations"}</span>
+              <span>{station ? station.blurb : "Between stations"}</span>
             </>
           ) : (
             <span>Press a band key to switch on</span>

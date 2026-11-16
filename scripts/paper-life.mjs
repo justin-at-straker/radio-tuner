@@ -1,0 +1,21 @@
+// The newspaper's life: folded on the table, unfolding as it's picked up, held, mid-turn.
+import { chromium } from "playwright"
+const browser = await chromium.launch({ channel: "chrome" })
+const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
+page.on("pageerror", (e) => console.log("pageerror:", e.message))
+page.on("console", (m) => m.type() === "error" && console.log("console:", m.text()))
+await page.goto("http://localhost:5199/")
+await page.locator(".loading .enter").click({ timeout: 90000 })
+await page.waitForTimeout(2500)
+await page.screenshot({ path: "shots/life-0-rest.png" })
+await page.screenshot({ path: "shots/life-0-crop.png", clip: { x: 760, y: 520, width: 680, height: 380 } })
+const box = await page.locator(".paper-sheet").first().boundingBox()
+console.log("hit box folded:", Object.fromEntries(Object.entries(box).map(([k, v]) => [k, Math.round(v)])))
+await page.mouse.dblclick(box.x + box.width / 2, box.y + box.height / 2)
+for (const [i, ms] of [[1, 230], [2, 40], [3, 40]]) { await page.waitForTimeout(ms); await page.screenshot({ path: `shots/life-${i}-lift.png` }) }
+await page.waitForTimeout(1200)
+await page.screenshot({ path: "shots/life-4-held.png" })
+await page.keyboard.press("ArrowRight")
+await page.waitForTimeout(330)
+await page.screenshot({ path: "shots/life-5-turn.png" })
+await browser.close()

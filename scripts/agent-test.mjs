@@ -17,7 +17,7 @@ const plate = () => page.locator(".plate").innerText().then((t) => t.replace(/\n
 let r = await run((v) => window.agent.act({ steps: [{ ref: "Station", action: "setValue", args: [v] }] }), q[0].items[0].value)
 await page.waitForTimeout(1500)
 console.log("tune to jazz:", r.ok, "| plate:", await plate())
-r = await run(() => window.agent.act({ steps: [{ ref: "Station", action: "setValue", args: ["Carols"] }, { ref: "Volume", action: "setValue", args: [35] }] }))
+r = await run(() => window.agent.act({ steps: [{ ref: "Station", action: "setValue", args: ["Christmas Vinyl"] }, { ref: "Volume", action: "setValue", args: [35] }] }))
 await page.waitForTimeout(2500)
 console.log("carols + volume:", r.ok, r.error?.message ?? "", "| plate:", await plate())
 console.log("station now:", await run(() => window.agent.snapshot().find((c) => c.label === "Station")?.nowPlaying))

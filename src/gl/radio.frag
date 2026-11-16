@@ -532,6 +532,10 @@ void main() {
       print *= mix(1.0, fibre / 0.93, 0.55);
       // the gutter: the page curves into the fold, so it darkens toward the spine
       print *= 1.0 - 0.28 * exp(-vUv.x * 28.0);
+      // newsprint is thin: the other side's ink shows through, faint and mirrored
+      vec3 other = backOfPage ? texture(uTex, vec2(1.0 - uv.x, uv.y)).rgb : texture(uTexBack, vec2(1.0 - uv.x, uv.y)).rgb;
+      float through = clamp((0.86 - dot(other, vec3(0.333))) / 0.86, 0.0, 1.0);
+      print *= 1.0 - 0.11 * through;
     }
     if (uPage == 1) {
       float edge = min(min(vUv.x, 1.0 - vUv.x), min(vUv.y, 1.0 - vUv.y));
@@ -577,9 +581,19 @@ void main() {
         vec2 fn = texture(uPaperN, pu).xy * 2.0 - 1.0;
         vec2 cn = texture(uCreaseN, vUv).xy * 2.0 - 1.0;
         s.N = perturb(n, vWorld, vUv, normalize(vec3(fn * 0.5 + cn * 0.35, 1.0)));
-        s.rough = 0.9;
+        s.rough = 0.97; // newsprint has no sheen at all
       }
       c = shade(s);
+      if (uPage == 1) {
+        // and it lets light through: lamps and fire behind the sheet glow in it
+        vec3 tl = uKeyCol * max(dot(-s.N, uKeyDir), 0.0) * gKeyShadow;
+        for (int i = 0; i < 4; i++) {
+          vec3 L = uLightPos[i] - vWorld;
+          float d = length(L);
+          tl += uLightCol[i] / (1.0 + d * d * 0.06) * max(dot(-s.N, L / d), 0.0);
+        }
+        c += print * tl * 0.06;
+      }
       gAlpha = t.a; // a card can have a shape (the teapot's tag does)
       // held up to read, a page turns toward the light: lift it toward plain print
       c = mix(c, print * 0.85, uReadable);

@@ -52,7 +52,7 @@ body {
 .dial-row {
   position: relative;
   display: flex;
-  height: 34px;
+  height: 36px;
   border-bottom: 1px solid rgba(58, 36, 16, 0.25);
   opacity: 0.55;
 }
@@ -104,16 +104,14 @@ body {
 }
 .dial-station {
   position: absolute;
-  top: 14px;
+  top: 16px;
   transform: translateX(-50%);
   font-size: 10.5px;
+  line-height: 1.15;
   font-weight: 500;
   white-space: nowrap;
   font-style: italic;
   opacity: 0.8;
-}
-.dial-station[data-low] {
-  top: 22px;
 }
 .dial-station[data-live] {
   font-style: normal;

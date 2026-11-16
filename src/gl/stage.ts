@@ -69,6 +69,12 @@ const STACK: [number, number][] = [
   [0.007, -0.005],
   [0.004, 0.008],
 ]
+/** The inner sheets of the folded paper, fanned a little off true: [x, y] as above. */
+const LEAVES: [number, number][] = [
+  [0.011, 0.004],
+  [0.005, -0.009],
+  [0.014, -0.003],
+]
 const IDENTITY = identity()
 /** The newspaper: folded on the front right of the table, or held up to read. */
 const PAPER_AT: [number, number, number] = [1.55, TABLE_Y + 0.006, 2.35]
@@ -76,7 +82,12 @@ const PAPER_YAW = 0.22
 const PAPER_SCALE = 0.65
 /** Where it's held up to read, over the table, and how far back you sit to read it. */
 const PAPER_READ: [number, number, number] = [0.25, 0, 3.0]
-const PAPER_VIEW_DIST = 3.5
+// Held up to read, the paper comes as close as it can while the print still
+// fits the screen: only the bare margins may run off the edge. PAPER_PRINT is
+// the printed area of a page (CSS px, inset from each edge); PAPER_SCREEN_GAP
+// is what's kept clear on screen (CSS px), the bottom leaving room for the hints.
+const PAPER_PRINT = { x: 24, top: 18, bottom: 14 }
+const PAPER_SCREEN_GAP = { side: 14, top: 10, bottom: 54 }
 // turns the room so the fire is off to the right, lighting the radio from the side
 const ENV_ROT = 0
 const DIAL_AT = { x: -0.12, y: -0.14 }
@@ -472,8 +483,12 @@ export function createStage(
     }
     // the newspaper: lifted or lying, and the page turning
     const ps = paperStore.get()
-    pf += Math.sign((ps.held ? 1 : 0) - pf) * Math.min(Math.abs((ps.held ? 1 : 0) - pf), dt / 0.6)
-    shown += Math.sign(ps.view - shown) * Math.min(Math.abs(ps.view - shown), dt / 0.7)
+    // Put down open at a later page, it's closed first (a brisk turn back to
+    // the front), and only then lowered to the table and folded
+    const closing = !ps.held && shown > 0.001
+    shown += Math.sign(ps.view - shown) * Math.min(Math.abs(ps.view - shown), dt / (closing ? 0.45 : 0.7))
+    const lifted = ps.held || shown > 0.001 ? 1 : 0
+    pf += Math.sign(lifted - pf) * Math.min(Math.abs(lifted - pf), dt / 0.6)
     const pe = pf * pf * (3 - 2 * pf)
     const paperW = unit(PAPER.w) * PAPER_SCALE
     const paperH = unit(PAPER.h) * PAPER_SCALE
@@ -517,8 +532,20 @@ export function createStage(
     const radioEye = lerp3(EYE, [HELD[0], HELD[1] + 0.1, HELD[2] + focusDist])
     const radioLook = lerp3(TARGET, HELD)
     const mixP = (a: number[], b: number[]) => a.map((v, i) => v + (b[i] - v) * pe) as [number, number, number]
-    const eye = mixP(radioEye, [readLook[0], readLook[1] + 0.05, readLook[2] + PAPER_VIEW_DIST])
-    const view = lookAt(eye, mixP(radioLook, readLook))
+    // how near to hold the paper: one page, or the spread (two) as it opens
+    const spreadness = Math.max(0, 1 - Math.abs(across - 1))
+    const printW = unit(PAPER.w - 2 * PAPER_PRINT.x) * PAPER_SCALE * (1 + spreadness) + unit(2 * PAPER_PRINT.x) * PAPER_SCALE * spreadness
+    const printH = unit(PAPER.h - PAPER_PRINT.top - PAPER_PRINT.bottom) * PAPER_SCALE
+    const printMid = unit((PAPER_PRINT.bottom - PAPER_PRINT.top) / 2) * PAPER_SCALE // print centre above the page centre
+    const tanY = Math.tan((35 * Math.PI) / 180 / 2)
+    const roomH = (H - PAPER_SCREEN_GAP.top - PAPER_SCREEN_GAP.bottom) / H
+    const roomW = (W - 2 * PAPER_SCREEN_GAP.side) / W
+    const readDist = Math.max(printH / 2 / (tanY * roomH), printW / 2 / (tanY * (W / H) * roomW))
+    // aim a touch below the print so it sits in the clear space above the hints
+    const aimDrop = ((PAPER_SCREEN_GAP.bottom - PAPER_SCREEN_GAP.top) / 2 / (H / 2)) * readDist * tanY
+    const readAim: [number, number, number] = [readLook[0], readLook[1] + printMid - aimDrop, readLook[2]]
+    const eye = mixP(radioEye, [readAim[0], readAim[1], readAim[2] + readDist])
+    const view = lookAt(eye, mixP(radioLook, readAim))
     const rot = quatToMat(quatSlerp(REST_Q, q, e))
     const pos = lerp3(REST_POS, HELD)
     pos[1] += Math.sin(e * Math.PI) * 0.35
@@ -735,12 +762,20 @@ export function createStage(
       lerp(restFoot[2], readFoot[2]),
     ]
     const paperFrame = mul(translate(...foot), rotateY(lerp(PAPER_YAW, 0)), rotateX(lerp(-Math.PI / 2, 0)))
-    const pagePlace = mul(paperFrame, translate(0, paperH / 2, 0), scale(paperW, paperH, 1))
+    // Lying down it's folded in half, the masthead up; it unfolds as it rises
+    // (once it's clear of the table), and folds again as it's put down.
+    const fold = 1 - Math.min(1, Math.max(0, (pe - 0.2) / 0.45))
+    const foldE = fold * fold * (3 - 2 * fold)
+    // about a millimetre of paper either side of the fold: the outer sheet's
+    // radius, with each sheet inside it on a tighter one
+    const FOLD_R = 0.0055
+    // folded, its visible half sits where the whole paper would have
+    const pagePlace = mul(paperFrame, translate(0, paperH / 2 - (paperH / 4) * foldE, 0), scale(paperW, paperH, 1))
     for (const p of pages) p.place = pagePlace
     /** Draws one sheet: its front page and, on the back, the next page; rolled
      *  `flip` radians about the spine (0 open, PI turned over), `z` its place
      *  in the stack, `at` any nudge off true. */
-    const drawSheet = (pre: Mat4, sheet: number, flip: number, z: number, at: Mat4, depthOnly: boolean) => {
+    const drawSheet = (pre: Mat4, sheet: number, flip: number, z: number, at: Mat4, depthOnly: boolean, foldR = FOLD_R) => {
       if (!depthOnly) {
         gl.activeTexture(gl.TEXTURE8)
         gl.bindTexture(gl.TEXTURE_2D, pages[sheet * 2 + 1].tex)
@@ -755,11 +790,16 @@ export function createStage(
         gl.uniform1f(U.uFlip, flip)
         gl.uniform1f(U.uCurl, -1.1)
         gl.uniform1f(U.uPageZ, paperW)
-        gl.uniform1f(U.uLeafZ, z)
+        gl.uniform1f(U.uLeafZ, z * (1 - foldE))
+        gl.uniform1f(U.uFold, foldE)
+        gl.uniform1f(U.uPageH, paperH)
+        gl.uniform1f(U.uFoldR, foldR)
+        gl.uniform1f(U.uFoldLift, (FOLD_R + foldR) * foldE)
         gl.uniform1f(U.uReadable, pre === IDENTITY ? pe * 0.92 : 0)
       })
       gl.uniform1i(U.uPage, 0)
       gl.uniform1f(U.uLeafZ, 0)
+      gl.uniform1f(U.uFold, 0)
       gl.uniform1f(U.uReadable, 0)
     }
     /** The paper as it stands: two sheets printed on both sides, the second
@@ -772,13 +812,24 @@ export function createStage(
     const drawPaper = (pre: Mat4, depthOnly = false) => {
       gl.disable(gl.CULL_FACE)
       if (!depthOnly) bindSet(...sets.linen)
-      const lift = (1 - pe) * 0.035
+      const lift = (1 - pe) * 0.012 // folded, the open edge barely lifts
       const turn0 = Math.max(lift, Math.min(1, shown) * Math.PI)
       const turn1 = Math.max(lift * 0.6, Math.max(0, Math.min(1, shown - 1)) * Math.PI)
       gl.uniform1f(U.uBow, pe * 0.06)
-      drawSheet(pre, 1, turn1, turn1 > Math.PI / 2 ? 0.006 : -0.003, sheetNudge, depthOnly)
+      // held, the top flops back a little and sways with your breathing
+      gl.uniform1f(U.uSag, pe * (0.05 + 0.012 * Math.sin(now * 0.0011)))
+      // folded on the table it has some thickness: the inner sheets fan out a
+      // touch at the open edges (they're blank to us; only their edges show)
+      if (foldE > 0.5) {
+        for (const [i, [nx, ny]] of LEAVES.entries()) {
+          const leaf = mul(translate(-0.5, 0, 0), scale(1 + nx, 1 + ny, 1), translate(0.5, 0, 0))
+          drawSheet(pre, 1, lift * (0.5 - i * 0.12), 0, leaf, depthOnly, FOLD_R - 0.0026 - i * 0.0009)
+        }
+      }
+      drawSheet(pre, 1, turn1, turn1 > Math.PI / 2 ? 0.006 : -0.003, sheetNudge, depthOnly, FOLD_R - 0.0013)
       drawSheet(pre, 0, turn0, turn0 > Math.PI / 2 ? 0.002 : 0, IDENTITY, depthOnly)
       gl.uniform1f(U.uBow, 0)
+      gl.uniform1f(U.uSag, 0)
       gl.enable(gl.CULL_FACE)
       gl.uniformMatrix4fv(U.uCab, false, model)
       gl.uniformMatrix4fv(U.uCabInv, false, invert(model))
@@ -886,7 +937,9 @@ export function createStage(
       if (!settled || !openPages.includes(i)) return cv.clearElementGeometry?.(p.el)
       const sheetAt = i >= 2 ? sheetNudge : IDENTITY
       const side = i % 2 === 1 ? translate(-1, 0, 0) : IDENTITY
-      cv.updateElementGeometry(p.el, { canvasTransform: DOMMatrix.fromFloat32Array(mul(toScreen, pagePlace, sheetAt, side, paperFrom)) })
+      // folded on the table, only the top half of the front page is showing
+      const folded = !ps.held ? mul(translate(0, 0.25, 0), scale(1, 0.5, 1)) : IDENTITY
+      cv.updateElementGeometry(p.el, { canvasTransform: DOMMatrix.fromFloat32Array(mul(toScreen, pagePlace, sheetAt, side, folded, paperFrom)) })
     })
   }
 
