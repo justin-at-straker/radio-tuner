@@ -16,6 +16,7 @@
 
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible"
 import { agentTools } from "@ui-sdk/react/agent"
+import { checkBotId } from "botid/server"
 import { convertToModelMessages, createUIMessageStreamResponse, jsonSchema, streamText, toUIMessageStream, tool, type UIMessage } from "ai"
 
 export const maxDuration = 60
@@ -52,6 +53,9 @@ function tooMany(request: Request) {
 }
 
 export async function POST(request: Request) {
+  // Vercel BotID: every reply costs a model call, so bots don't get one
+  const verdict = await checkBotId({ advancedOptions: { headers: Object.fromEntries(request.headers) } })
+  if (verdict.isBot) return json(403, { error: "The typewriter only types for people. Try again from a regular browser?" })
   if (tooMany(request)) return json(429, { error: "The typewriter needs a moment to cool down. Try again in a minute." })
   let messages: UIMessage[]
   try {

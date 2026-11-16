@@ -367,11 +367,15 @@ function LettersPage() {
     sent.state === "error" && sent.field === name ? sent.message : "";
   async function send(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const form = event.currentTarget;
     setSent({ state: "sending" });
     try {
+      const data = new FormData(form);
+      // how long the page has been open: people take more than a moment to write
+      data.set("elapsed", String(Math.round(performance.now())));
       const response = await fetch("/api/contact", {
         method: "POST",
-        body: new FormData(event.currentTarget),
+        body: data,
       });
       const body = (await response.json().catch(() => ({}))) as {
         error?: string;
@@ -388,7 +392,7 @@ function LettersPage() {
       }
       if (response.ok) {
         setSent({ state: "sent" });
-        event.currentTarget?.reset();
+        form.reset();
       } else
         setSent({
           state: "error",
