@@ -1,6 +1,6 @@
 # Radio Tuner
 
-**Live:** https://radio-tuner.vercel.app (Chrome or Edge 157+)
+**Live:** https://justin-cole.vercel.app (Chrome or Edge 157+)
 
 ![The radio on a coffee table by the fire](docs/screenshot.jpg)
 
