@@ -76,6 +76,9 @@ export async function POST(request: Request) {
     tools,
     maxOutputTokens: 600,
     temperature: 0.4,
+    // the briefing and the tools are the same on every turn: let the Gateway
+    // cache them with the provider, so repeat questions cost much less
+    providerOptions: { gateway: { caching: "auto" } },
   })
   return createUIMessageStreamResponse({
     stream: toUIMessageStream({
