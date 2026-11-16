@@ -1,0 +1,404 @@
+@import url("https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600&family=Courier+Prime:wght@400;700&display=block");
+
+:root {
+  --ink: #3a2410;
+  --glass: #efe1bf;
+  --ivory: #f1e6cc;
+  --brass: #b8913f;
+  --red: #b3261e;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: radial-gradient(120% 90% at 50% 40%, #2a2019 0%, #120d0a 60%, #070504 100%);
+  color: #e9dcc0;
+  font-family: Jost, system-ui, sans-serif;
+}
+
+.stage {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  display: block;
+  touch-action: none;
+}
+
+/* Drawable panels: fixed size, border-box, so the drawn picture is exactly the box. */
+.stage > [drawable] {
+  box-sizing: border-box;
+  overflow: hidden;
+  cursor: auto;
+}
+
+/* ---------------------------------------------------------------- dial glass */
+
+.dial {
+  width: 720px;
+  height: 128px;
+  box-sizing: border-box;
+  padding: 10px 20px 8px 0;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.35), transparent 30%),
+    linear-gradient(180deg, #f3e7c6, #e6d3a6);
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.dial-row {
+  position: relative;
+  display: flex;
+  height: 34px;
+  border-bottom: 1px solid rgba(58, 36, 16, 0.25);
+  opacity: 0.55;
+}
+.dial-row:last-child {
+  border-bottom: 0;
+}
+.dial-row[data-active] {
+  opacity: 1;
+}
+.dial-band {
+  width: 64px;
+  flex: none;
+  text-align: center;
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 1;
+  padding-top: 6px;
+}
+.dial-band small {
+  display: block;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+}
+.dial-row[data-active] .dial-band {
+  color: var(--red);
+}
+.dial-scale {
+  position: relative;
+  flex: 1;
+  border-left: 1px solid rgba(58, 36, 16, 0.3);
+}
+.dial-num {
+  position: absolute;
+  top: 1px;
+  transform: translateX(-50%);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.dial-num::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -2px;
+  width: 1px;
+  height: 3px;
+  background: currentColor;
+}
+.dial-station {
+  position: absolute;
+  top: 14px;
+  transform: translateX(-50%);
+  font-size: 10.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  font-style: italic;
+  opacity: 0.8;
+}
+.dial-station[data-low] {
+  top: 22px;
+}
+.dial-station[data-live] {
+  font-style: normal;
+  font-weight: 600;
+  opacity: 1;
+}
+.dial-station::selection,
+.dial-band::selection,
+.plate ::selection,
+.label ::selection {
+  background: rgba(179, 38, 30, 0.35);
+}
+
+/* ---------------------------------------------------------------- controls strip */
+
+.controls {
+  width: 816px;
+  height: 128px;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: 152px 1fr 152px;
+  align-items: center;
+  justify-items: center;
+  /* transparent: the 3D scene puts the cabinet's rosewood behind it */
+  background: transparent;
+  color: var(--ivory);
+}
+
+.knob {
+  position: relative;
+  width: 112px;
+  height: 112px;
+  display: grid;
+  place-items: center;
+}
+.knob-grip {
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  cursor: ew-resize;
+  background: radial-gradient(circle, #120a05 0 46%, transparent 47%);
+}
+.knob-scale {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.knob-scale line {
+  stroke: var(--brass);
+  stroke-width: 1.6;
+}
+/* The number field stays real (focus, arrows, typing) but sits out of sight;
+   the 3D knob above it shows the value. */
+.knob-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.knob-label {
+  position: absolute;
+  bottom: -2px;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #c9b48a;
+}
+.knob:focus-within .knob-grip {
+  outline: 2px solid #f0b54a;
+  outline-offset: 2px;
+}
+
+.centre {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+.plate {
+  width: 440px;
+  height: 40px;
+  box-sizing: border-box;
+  padding: 4px 12px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #d8b866, #a98235);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+  color: #2a1906;
+  font-family: "Courier Prime", monospace;
+  font-size: 12px;
+  line-height: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow: hidden;
+}
+.plate b {
+  font-size: 13px;
+}
+.plate span {
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.keys {
+  display: flex;
+  gap: 4px;
+}
+.key {
+  all: unset;
+  box-sizing: border-box;
+  width: 62px;
+  height: 44px;
+  padding-top: 22px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: #4a3720;
+  border-radius: 3px 3px 6px 6px;
+  background: linear-gradient(180deg, #fff8e6, #e5d6b2 70%, #c9b88f);
+  box-shadow: 0 4px 0 #8a7650, 0 5px 6px rgba(0, 0, 0, 0.6);
+  cursor: pointer;
+  transition: transform 80ms, box-shadow 80ms;
+}
+.key[data-checked] {
+  transform: translateY(3px);
+  background: linear-gradient(180deg, #e9dcbc, #d2c197);
+  box-shadow: 0 1px 0 #8a7650, 0 1px 2px rgba(0, 0, 0, 0.6);
+  color: var(--red);
+}
+.key:focus-visible {
+  outline: 2px solid #f0b54a;
+  outline-offset: 2px;
+}
+
+/* ---------------------------------------------------------------- back label */
+
+.label {
+  width: 360px;
+  height: 160px;
+  box-sizing: border-box;
+  padding: 12px 16px;
+  background: #ece2c8;
+  color: #2b2116;
+  font-family: "Courier Prime", monospace;
+  font-size: 11.5px;
+  line-height: 1.35;
+  border: 2px solid #2b2116;
+}
+.label h2 {
+  margin: 0 0 4px;
+  font-family: "Courier Prime", monospace;
+  font-size: 18px;
+  letter-spacing: 0.06em;
+}
+.label p {
+  margin: 0 0 3px;
+}
+.label .warn {
+  color: #9b1c14;
+  font-weight: 700;
+}
+.label .serial span {
+  font-weight: 700;
+}
+
+/* ---------------------------------------------------------------- page chrome */
+
+.hud {
+  position: fixed;
+  left: 16px;
+  bottom: 14px;
+  font-size: 12px;
+  color: rgba(233, 220, 192, 0.6);
+  letter-spacing: 0.04em;
+  pointer-events: none;
+}
+.notice {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 24px;
+}
+
+/* ---------------------------------------------------------------- loading */
+
+.loading {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: radial-gradient(60% 60% at 50% 45%, #1d140d 0%, #0b0806 70%);
+  color: #e9d6b0;
+  font-family: "Courier Prime", monospace;
+  letter-spacing: 0.06em;
+  z-index: 10;
+  transition: opacity 900ms ease 200ms, visibility 0s linear 1100ms;
+}
+.loading[data-done] {
+  opacity: 0;
+  visibility: hidden;
+}
+.loading p {
+  margin: 0;
+  font-size: 15px;
+}
+.loading small {
+  font-size: 11px;
+  color: rgba(233, 214, 176, 0.55);
+}
+/* a valve: a glass envelope, its filament glowing up as things load */
+.valve {
+  position: relative;
+  width: 46px;
+  height: 78px;
+  border-radius: 23px 23px 8px 8px;
+  border: 1px solid rgba(233, 214, 176, 0.25);
+  background: radial-gradient(60% 50% at 50% 55%, rgba(255, 140, 50, calc(var(--warm) * 0.35)), transparent 70%);
+  box-shadow: 0 0 calc(var(--warm) * 40px) rgba(255, 120, 40, calc(var(--warm) * 0.5));
+}
+.filament {
+  position: absolute;
+  left: 50%;
+  top: 22px;
+  width: 14px;
+  height: 30px;
+  transform: translateX(-50%);
+  border: 2px solid rgb(calc(90 + var(--warm) * 165) calc(40 + var(--warm) * 120) calc(20 + var(--warm) * 30));
+  border-top: 0;
+  border-radius: 0 0 7px 7px;
+  filter: drop-shadow(0 0 calc(var(--warm) * 6px) #ffb060);
+  animation: flicker 1.6s infinite;
+}
+@keyframes flicker {
+  50% { opacity: 0.85; }
+}
+.loading .bar {
+  width: 180px;
+  height: 2px;
+  background: rgba(233, 214, 176, 0.15);
+}
+.loading .bar span {
+  display: block;
+  height: 100%;
+  background: #f0a14a;
+  box-shadow: 0 0 8px #f0a14a;
+  transition: width 200ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  .filament { animation: none; }
+  .loading { transition: none; }
+}
+
+/* station names on the dial are buttons (the Station selector): ink on glass */
+button.dial-station {
+  all: unset;
+  position: absolute;
+  top: 14px;
+  transform: translateX(-50%);
+  font-size: 10.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  border-radius: 2px;
+  padding: 0 2px;
+}
+button.dial-station[data-low] {
+  top: 22px;
+}
+button.dial-station:hover {
+  text-decoration: underline;
+}
+button.dial-station[data-tuned] {
+  color: var(--red);
+}
+button.dial-station:focus-visible {
+  outline: 2px solid #f0b54a;
+}

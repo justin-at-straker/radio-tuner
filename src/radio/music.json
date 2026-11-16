@@ -1,0 +1,274 @@
+{
+  "jazz": [
+    {
+      "src": "/music/jazz/king-oliver-s-creole-jazz-band-krooked-blues-1923.opus",
+      "label": "King Oliver's Creole Jazz Band: Krooked Blues (1923)",
+      "title": "King Oliver's Creole Jazz Band-- \"Krooked Blues\" (1923)",
+      "performer": "King Oliver's Creole Jazz Band feat. Louis Armstrong",
+      "date": "1923-10-05",
+      "licence": "Public domain",
+      "source": "https://commons.wikimedia.org/wiki/File:King_Oliver%27s_Creole_Jazz_Band--_%22Krooked_Blues%22_(1923).ogg",
+      "duration": 175
+    },
+    {
+      "src": "/music/jazz/bessie-smith-and-louis-armstrong-the-st-louis-blues-1925.opus",
+      "label": "Bessie Smith with Louis Armstrong: St. Louis Blues (1925)",
+      "title": "Bessie Smith and Louis Armstrong - The St. Louis Blues (1925)",
+      "performer": "Louis Armstrong, Bessie Smith, W. C. Handy",
+      "date": "1925-04-10",
+      "licence": "Public domain",
+      "source": "https://commons.wikimedia.org/wiki/File:Bessie_Smith_and_Louis_Armstrong_-_The_St._Louis_Blues_(1925).mp3",
+      "duration": 190
+    },
+    {
+      "src": "/music/jazz/original-dixieland-jass-band-livery-stable-blues-1917-with-h.opus",
+      "label": "Original Dixieland Jass Band: Livery Stable Blues (1917)",
+      "title": "Original Dixieland Jass Band - Livery Stable Blues (1917) with hiss reduction",
+      "performer": "Original Dixieland Jass Band (performer); Ray Lopez (1889–1979), Alcide Nunez (1884–1934) (composers)",
+      "date": "1917-02-26",
+      "licence": "Public domain",
+      "source": "https://commons.wikimedia.org/wiki/File:Original_Dixieland_Jass_Band_-_Livery_Stable_Blues_(1917)_with_hiss_reduction.ogg",
+      "duration": 191
+    },
+    {
+      "src": "/music/jazz/at-the-jazz-band-ball-1918-sound-recording.opus",
+      "label": "Original Dixieland Jass Band: At the Jazz Band Ball (1918)",
+      "title": "At the jazz band ball (1918 sound recording)",
+      "performer": "Recording: Larry Shields, Nick LaRocca, Henry Ragas, Tony Sbarbaro, and Eddie Edwards Composition: Larry Shields and Nick LaRocca",
+      "date": "1918-03-19",
+      "licence": "Public domain",
+      "source": "https://commons.wikimedia.org/wiki/File:At_the_jazz_band_ball_(1918_sound_recording).mp3",
+      "duration": 161
+    }
+  ],
+  "dance": [
+    {
+      "src": "/music/dance/the-japanese-sandman-by-paul-whiteman-acoustic-1920-78-rpm.opus",
+      "label": "Paul Whiteman and his Orchestra: The Japanese Sandman (1920)",
+      "title": "\"The Japanese Sandman\", by Paul Whiteman, Acoustic 1920 78 rpm",
+      "performer": "Paul Whiteman (leader and instrumentalist : violin) Henry Busse (instrumentalist : trumpet) Theron E. \"Buster\" Johnson (instrumentalist : trombone) Hale Byers (instrumentalist : Soprano saxophone) Gus",
+      "date": "1920-08-23",
+      "licence": "Public domain",
+      "source": "https://commons.wikimedia.org/wiki/File:%22The_Japanese_Sandman%22,_by_Paul_Whiteman,_Acoustic_1920_78_rpm.mp3",
+      "duration": 175
+    },
+    {
+      "src": "/music/dance/three-o-clock-in-the-morning.opus",
+      "label": "Paul Whiteman and his Orchestra: Three O'Clock in the Morning (1922)",
+      "title": "Three O'clock In The Morning",
+      "performer": "For the composition: Lyrics by Theodora Morse ; Music written by Julian Robledo. For the performance: Paul Whiteman &amp; His Orchestra",
+      "date": "Written in 1922, performed in 1922",
+      "licence": "Public domain",
+      "source": "https://commons.wikimedia.org/wiki/File:Three_O%27clock_In_The_Morning.ogg",
+      "duration": 186
+    },
+    {
+      "src": "/music/dance/what-ll-i-do-1924-sound-recording.opus",
+      "label": "Paul Whiteman and his Orchestra: What'll I Do (1924)",
+      "title": "What'll I do (1924 sound recording)",
+      "performer": "Irving Berlin",
+      "date": "1924-03-18",
+      "licence": "Public domain",
+      "source": "https://commons.wikimedia.org/wiki/File:What%27ll_I_do_(1924_sound_recording).mp3",
+      "duration": 163
+    },
+    {
+      "src": "/music/dance/rose-room-joseph-c-smith-s-orchestra-victor-18473-b-21882-2-.opus",
+      "label": "Joseph C. Smith's Orchestra: Rose Room (1918)",
+      "title": "\"Rose Room\" - Joseph C. Smith's Orchestra - Victor 18473 (B-21882-2) 6-3-1918",
+      "performer": "Joseph C. Smith",
+      "date": "1918",
+      "licence": "Public domain",
+      "source": "https://commons.wikimedia.org/wiki/File:%22Rose_Room%22_-_Joseph_C._Smith%27s_Orchestra_-_Victor_18473_(B-21882-2)_6-3-1918.oga",
+      "duration": 163
+    },
+    {
+      "src": "/music/dance/ben-selvin-i-m-forever-blowing-bubbles.opus",
+      "label": "Selvin's Novelty Orchestra: I'm Forever Blowing Bubbles (1919)",
+      "title": "Ben Selvin - I'm Forever Blowing Bubbles",
+      "performer": "John Kellette",
+      "date": "1919-07-31",
+      "licence": "Public domain",
+      "source": "https://commons.wikimedia.org/wiki/File:Ben_Selvin_-_I%27m_Forever_Blowing_Bubbles.ogg",
+      "duration": 204
+    }
+  ],
+  "orchestra": [
+    {
+      "src": "/music/orchestra/paul-whiteman-concert-orchestra-rhapsody-in-blue-part-01.opus",
+      "label": "Gershwin and the Whiteman Concert Orchestra: Rhapsody in Blue, part 1 (1924)",
+      "title": "Paul Whiteman Concert Orchestra - Rhapsody in Blue Part 01",
+      "performer": "George Gershwin",
+      "date": "1924-06-10",
+      "licence": "Public domain",
+      "source": "https://commons.wikimedia.org/wiki/File:Paul_Whiteman_Concert_Orchestra_-_Rhapsody_in_Blue_Part_01.mp3",
+      "duration": 261
+    },
+    {
+      "src": "/music/orchestra/paul-whiteman-concert-orchestra-rhapsody-in-blue-part-02.opus",
+      "label": "Gershwin and the Whiteman Concert Orchestra: Rhapsody in Blue, part 2 (1924)",
+      "title": "Paul Whiteman Concert Orchestra - Rhapsody in Blue Part 02",
+      "performer": "George Gershwin",
+      "date": "1924-06-10",
+      "licence": "Public domain",
+      "source": "https://commons.wikimedia.org/wiki/File:Paul_Whiteman_Concert_Orchestra_-_Rhapsody_in_Blue_Part_02.mp3",
+      "duration": 273
+    },
+    {
+      "src": "/music/orchestra/philadelphiasymphonyorchestra-dansemacabre.opus",
+      "label": "Philadelphia Orchestra, Stokowski: Danse Macabre (1925)",
+      "title": "PhiladelphiaSymphonyOrchestra-DanseMacabre",
+      "performer": "Philadelphia Symphony Orchestra, Stokowski, Victor 6505",
+      "date": "1925-04-29",
+      "licence": "Public domain",
+      "source": "https://commons.wikimedia.org/wiki/File:PhiladelphiaSymphonyOrchestra-DanseMacabre.ogg",
+      "duration": 419
+    },
+    {
+      "src": "/music/orchestra/victor-concert-orchestra-1917-beethoven-5th-symphony-fourth-.opus",
+      "label": "Victor Concert Orchestra: Beethoven, Symphony No. 5, finale (1917)",
+      "title": "Victor Concert Orchestra 1917 Beethoven 5th symphony fourth movement",
+      "performer": "Ludwig van Beethoven",
+      "date": "Side 1 (0:00-4:30) recorded 4/18/1917. Side 2 (4:30-8:50) recorded 3/7/1917. Pub",
+      "licence": "Public domain",
+      "source": "https://commons.wikimedia.org/wiki/File:Victor_Concert_Orchestra_1917_Beethoven_5th_symphony_fourth_movement.oga",
+      "duration": 208
+    }
+  ],
+  "lounge": [
+    {
+      "src": "/music/lounge/pleasant-moments-piano-roll.opus",
+      "label": "Scott Joplin, piano roll: Pleasant Moments (1916)",
+      "title": "Pleasant Moments Piano Roll",
+      "performer": "Scott Joplin (pianist, composer)",
+      "date": "April 1916. Pleasant Moments first published 1909",
+      "licence": "Public domain",
+      "source": "https://commons.wikimedia.org/wiki/File:Pleasant_Moments_Piano_Roll.ogg",
+      "duration": 176
+    },
+    {
+      "src": "/music/lounge/justin-tyme-roy-bargy-1922-piano-roll-transcription-midi-pla.opus",
+      "label": "Roy Bargy, piano roll: Justin-Tyme (1922)",
+      "title": "Justin-Tyme (Roy Bargy, 1922) - Piano Roll Transcription - MIDI Playing",
+      "performer": "Roy Fredrick Bargy",
+      "date": "1922",
+      "licence": "Public domain",
+      "source": "https://commons.wikimedia.org/wiki/File:Justin-Tyme_(Roy_Bargy,_1922)_-_Piano_Roll_Transcription_-_MIDI_Playing.opus",
+      "duration": 175
+    },
+    {
+      "src": "/music/lounge/maple-leaf-rag-played-by-scott-joplin-1916-v2.opus",
+      "label": "Scott Joplin, piano roll: Maple Leaf Rag (1916)",
+      "title": "Maple leaf rag - played by Scott Joplin 1916 V2",
+      "performer": "Scott Joplin - composer.",
+      "date": "1899",
+      "licence": "Public domain",
+      "source": "https://commons.wikimedia.org/wiki/File:Maple_leaf_rag_-_played_by_Scott_Joplin_1916_V2.ogg",
+      "duration": 130
+    },
+    {
+      "src": "/music/lounge/scott-joplin-04-the-entertainer-1902-piano-roll.opus",
+      "label": "Scott Joplin, piano roll: The Entertainer",
+      "title": "Scott Joplin - 04 - The Entertainer 1902 piano roll",
+      "performer": "Scott Joplin",
+      "date": "1903-01-01",
+      "licence": "Public domain",
+      "source": "https://commons.wikimedia.org/wiki/File:Scott_Joplin_-_04_-_The_Entertainer_1902_piano_roll.mp3",
+      "duration": 157
+    }
+  ],
+  "christmas": [
+    {
+      "src": "/music/christmas/u-s-army-band-hark-the-herald-angels-sing.opus",
+      "label": "U.S. Army Band: Hark! The Herald Angels Sing",
+      "title": "U.S. Army Band - Hark! The Herald Angels Sing",
+      "performer": "",
+      "date": "",
+      "licence": "Public domain",
+      "source": "https://commons.wikimedia.org/wiki/File:U.S._Army_Band_-_Hark!_The_Herald_Angels_Sing.ogg",
+      "duration": 112
+    },
+    {
+      "src": "/music/christmas/u-s-army-band-good-king-wenceslaus.opus",
+      "label": "U.S. Army Band: Good King Wenceslas",
+      "title": "U.S. Army Band - Good King Wenceslaus",
+      "performer": "Tune is 13th century, first published in the 1582 Finnish song collection Piae Cantiones . Lyrics are by John Mason Neale (1818-1866), in collaboration with Thomas Helmore (1811-1890}. First published",
+      "date": "circa 2010 date QS:P,+2010-00-00T00:00:00Z/9,P1480,Q5727902",
+      "licence": "Public domain",
+      "source": "https://commons.wikimedia.org/wiki/File:U.S._Army_Band_-_Good_King_Wenceslaus.ogg",
+      "duration": 77
+    },
+    {
+      "src": "/music/christmas/u-s-army-band-o-tannenbaum.opus",
+      "label": "U.S. Army Band: O Tannenbaum",
+      "title": "U.S. Army Band - O Tannenbaum",
+      "performer": "U.S. Army Band \"Pershing's Own\" (performer) Ernst Anschütz (1780–1861, lyrics and selection of melody)",
+      "date": "circa 2010 date QS:P,+2010-00-00T00:00:00Z/9,P1480,Q5727902",
+      "licence": "Public domain",
+      "source": "https://commons.wikimedia.org/wiki/File:U.S._Army_Band_-_O_Tannenbaum.ogg",
+      "duration": 93
+    },
+    {
+      "src": "/music/christmas/u-s-army-band-here-we-come-a-wassailing.opus",
+      "label": "U.S. Army Band: Here We Come A-wassailing",
+      "title": "U.S. Army Band - Here We Come A-wassailing",
+      "performer": "U.S. Army Band \"Pershing's Own\"",
+      "date": "circa 2010 date QS:P,+2010-00-00T00:00:00Z/9,P1480,Q5727902",
+      "licence": "Public domain",
+      "source": "https://commons.wikimedia.org/wiki/File:U.S._Army_Band_-_Here_We_Come_A-wassailing.ogg",
+      "duration": 59
+    },
+    {
+      "src": "/music/christmas/the-first-noel-2020-starlifter-and-roots-in-blue-united-stat.opus",
+      "label": "U.S. Air Force Band of Mid-America: The First Noel",
+      "title": "The First Noel (2020) - Starlifter and Roots in Blue - United States Air Force Band of Mid-America",
+      "performer": "Composition: SSgt Tim Davis and SrA David Duneman, traditional; Mixing and Mastering: SSgt Tim Davis; Performance: United States Air Force Band of Mid-America, Starlifter and Roots in Blue",
+      "date": "2020",
+      "licence": "Public domain",
+      "source": "https://commons.wikimedia.org/wiki/File:The_First_Noel_(2020)_-_Starlifter_and_Roots_in_Blue_-_United_States_Air_Force_Band_of_Mid-America.mp3",
+      "duration": 217
+    },
+    {
+      "src": "/music/christmas/u-s-army-band-coventry-carol.opus",
+      "label": "U.S. Army Band: Coventry Carol",
+      "title": "U.S. Army Band - Coventry Carol",
+      "performer": "",
+      "date": "",
+      "licence": "Public domain",
+      "source": "https://commons.wikimedia.org/wiki/File:U.S._Army_Band_-_Coventry_Carol.ogg",
+      "duration": 188
+    },
+    {
+      "src": "/music/christmas/o-come-o-come-emmanuel-united-states-army-band.opus",
+      "label": "U.S. Army Band: O Come, O Come, Emmanuel",
+      "title": "O Come, O Come Emmanuel - United States Army Band",
+      "performer": "Composition: traditional; Arrangement: Douglas A. Richard; Performance: United States Army Band; Recording: United States Army",
+      "date": "2005",
+      "licence": "Public domain",
+      "source": "https://commons.wikimedia.org/wiki/File:O_Come,_O_Come_Emmanuel_-_United_States_Army_Band.opus",
+      "duration": 331
+    },
+    {
+      "src": "/music/christmas/pat-a-pan-concert-band-united-states-air-force-band.opus",
+      "label": "U.S. Air Force Band: Pat-a-pan",
+      "title": "Pat-a-pan - Concert Band - United States Air Force Band",
+      "performer": "Composition: Bernard de la Monnoye, Robert Thurston; Performance: United States Air Force Band, Concert Band; Recording: United States Air Force Band",
+      "date": "2004",
+      "licence": "Public domain",
+      "source": "https://commons.wikimedia.org/wiki/File:Pat-a-pan_-_Concert_Band_-_United_States_Air_Force_Band.mp3",
+      "duration": 43
+    }
+  ],
+  "hawaii": [
+    {
+      "src": "/music/hawaii/frank-ferera-helen-louise-hawaiian-portuguese-tango.opus",
+      "label": "Frank Ferera and Helen Louise: Hawaiian Portuguese Tango (1916)",
+      "title": "Frank Ferera, Helen Louise - Hawaiian Portuguese Tango",
+      "performer": "Frank Ferera, Helen Louise Greenus",
+      "date": "1916-05-29",
+      "licence": "Public domain",
+      "source": "https://commons.wikimedia.org/wiki/File:Frank_Ferera,_Helen_Louise_-_Hawaiian_Portuguese_Tango.ogg",
+      "duration": 189
+    }
+  ]
+}

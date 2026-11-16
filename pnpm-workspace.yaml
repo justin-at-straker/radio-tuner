@@ -1,0 +1,10 @@
+allowBuilds:
+  '@carbon/icon-helpers': set this to true or false
+  '@carbon/icons-react': set this to true or false
+minimumReleaseAgeExclude:
+  - '@ui-sdk/core@0.1.0-beta.2'
+  - '@ui-sdk/react@0.1.0-beta.2'
+# Carbon's postinstall is telemetry only; the icons work without it.
+ignoredBuiltDependencies:
+  - '@carbon/icon-helpers'
+  - '@carbon/icons-react'

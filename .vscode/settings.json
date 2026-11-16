@@ -1,0 +1,8 @@
+{
+  "clang-format.executable": "${workspaceRoot}/node_modules/clang-format/bin/win32/clang-format.exe",
+  "clang-format.style": "file",
+  "[glsl]": {
+    "editor.defaultFormatter": "xaver.clang-format",
+    "editor.formatOnSave": true
+  }
+}

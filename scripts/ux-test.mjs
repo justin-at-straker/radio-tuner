@@ -1,0 +1,23 @@
+import { chromium } from "playwright"
+const browser = await chromium.launch({ channel: "chrome" })
+const page = await browser.newPage({ viewport: { width: 1280, height: 720 } })
+page.on("pageerror", (e) => console.log("pageerror:", e.message))
+await page.goto("http://localhost:5199/")
+await page.waitForTimeout(400)
+await page.screenshot({ path: "shots/7-loading.png" })
+console.log("loading text:", await page.locator(".loading small").innerText())
+await page.waitForFunction(() => document.querySelector(".loading")?.hasAttribute("data-done"), null, { timeout: 60000 })
+console.log("loaded")
+await page.waitForTimeout(1500)
+const cursor = async (x, y) => {
+  await page.mouse.move(x, y)
+  await page.waitForTimeout(100)
+  return page.evaluate(() => document.querySelector("canvas").style.cursor || "default")
+}
+console.log("over room:", await cursor(100, 150))
+console.log("over resting radio (grille):", await cursor(820, 200))
+await page.mouse.dblclick(820, 200)
+await page.waitForTimeout(1200)
+console.log("over held radio (grille):", await cursor(640, 200))
+console.log("over room while held:", await cursor(40, 40))
+await browser.close()

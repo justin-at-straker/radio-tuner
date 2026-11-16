@@ -1,0 +1,11 @@
+# Formatting for the GLSL shaders (src/gl/*.vert, *.frag).
+BasedOnStyle: LLVM
+IndentWidth: 2
+ColumnLimit: 0
+AllowShortFunctionsOnASingleLine: All
+AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortLoopsOnASingleLine: true
+AllowShortBlocksOnASingleLine: Always
+KeepEmptyLinesAtTheStartOfBlocks: true
+MaxEmptyLinesToKeep: 1
+SortIncludes: false

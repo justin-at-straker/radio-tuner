@@ -1,0 +1,31 @@
+// Drives the radio the way an agent would, through the ui-sdk bridge (window.agent).
+import { chromium } from "playwright"
+const browser = await chromium.launch({ channel: "chrome", args: ["--autoplay-policy=no-user-gesture-required"] })
+const page = await browser.newPage({ viewport: { width: 1280, height: 720 } })
+page.on("pageerror", (e) => console.log("pageerror:", e.message))
+let answer = false
+page.on("dialog", (d) => (console.log("  dialog:", d.message(), "->", answer ? "OK" : "Cancel"), answer ? d.accept() : d.dismiss()))
+await page.goto("http://localhost:5199/")
+await page.waitForFunction(() => document.querySelector(".loading")?.hasAttribute("data-done"), null, { timeout: 60000 })
+const run = (fn, arg) => page.evaluate(fn, arg)
+const snap = await run(() => window.agent.snapshot().map(({ ref, component, label, value, nowPlaying, min, max, items, actions }) => ({ ref, component, label, value, nowPlaying, min, max, items: items?.length, actions })))
+console.log("snapshot:", JSON.stringify(snap, null, 1))
+const q = await run(() => window.agent.query({ within: "Station", text: "jazz" }))
+console.log("query jazz:", JSON.stringify(q[0]?.items))
+const plate = () => page.locator(".plate").innerText().then((t) => t.replace(/\n/g, " / "))
+let r = await run((v) => window.agent.act({ steps: [{ ref: "Station", action: "setValue", args: [v] }] }), q[0].items[0].value)
+await page.waitForTimeout(1500)
+console.log("tune to jazz:", r.ok, "| plate:", await plate())
+r = await run(() => window.agent.act({ steps: [{ ref: "Station", action: "setValue", args: ["Carols"] }, { ref: "Volume", action: "setValue", args: [35] }] }))
+await page.waitForTimeout(2500)
+console.log("carols + volume:", r.ok, r.error?.message ?? "", "| plate:", await plate())
+console.log("station now:", await run(() => window.agent.snapshot().find((c) => c.label === "Station")?.nowPlaying))
+r = await run(() => window.agent.act({ steps: [{ ref: "Station", action: "setValue", args: ["Narnia"] }] }))
+console.log("bad station:", r.ok, r.error?.message)
+answer = false
+r = await run(() => window.agent.act({ steps: [{ ref: "Band", action: "setValue", args: ["OFF"] }] }))
+console.log("switch off (refused):", r.ok, r.error?.message, "| key:", await page.locator(".key[data-checked]").innerText())
+answer = true
+r = await run(() => window.agent.act({ steps: [{ ref: "Band", action: "setValue", args: ["OFF"] }] }))
+console.log("switch off (allowed):", r.ok, "| key:", await page.locator(".key[data-checked]").innerText())
+await browser.close()
