@@ -4,6 +4,7 @@ import { BANDS, bandById, freqAt, reception, type Programme } from "./stations"
 const ALL_PROGRAMMES = [...new Set(BANDS.flatMap((b) => b.stations.map((s) => s.programme)))]
 import { radio } from "./store"
 import { startFireplace, type Fireplace } from "./fireplace"
+import { startPaperSounds, type PaperSounds } from "./paperSounds"
 import { createRoomAcoustics, type RoomAcoustics } from "./acoustics"
 
 // Everything you hear is made here, live: no samples. Each programme is a
@@ -15,6 +16,7 @@ import { createRoomAcoustics, type RoomAcoustics } from "./acoustics"
 
 let ctx: AudioContext | null = null
 let fireplace: Fireplace | null = null
+let paperSounds: PaperSounds | null = null
 let acoustics: RoomAcoustics | null = null
 let closeness = 0
 
@@ -104,6 +106,8 @@ export function startAudio() {
   const c = ctx
   // the room's own sound: the fire, quietly, whatever the radio is doing
   fireplace = startFireplace(c)
+  // ...and the newspaper, as its pages turn
+  paperSounds = startPaperSounds(c)
   analyser = c.createAnalyser()
   analyser.fftSize = 1024
   master = c.createGain()
@@ -408,6 +412,8 @@ export function stopAudio() {
   if (typeof speechSynthesis !== "undefined") speechSynthesis.cancel()
   fireplace?.stop()
   fireplace = null
+  paperSounds?.stop()
+  paperSounds = null
   acoustics = null
   void ctx?.close()
   ctx = null

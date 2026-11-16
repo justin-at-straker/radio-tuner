@@ -284,7 +284,9 @@ function soundFor(kind: Haptic) {
 // Text fields that sound like a keyboard as you type in them.
 const typing = 'textarea, [contenteditable="true"], input:not([type]), input[type="text"], input[type="search"], input[type="email"], input[type="url"], input[type="tel"], input[type="password"], input[type="number"]'
 
-function keyVoice(key: string): Voice | null {
+function keyVoice(key: string | undefined): Voice | null {
+  // Autofill and some synthetic events fire keydown/keyup with no key at all.
+  if (!key) return null
   if (key === " ") return "type-space"
   if (key === "Enter" || key === "Backspace" || key === "Delete" || key === "Tab") return "type-big"
   // Printable keys, and the virtual keyboards that report none.

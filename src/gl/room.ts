@@ -45,6 +45,13 @@ export const TEAPOT = { x: -1.75, z: 0.05 }
 /** Side-on to you: spout to the right, handle to the left, the front clear for the tag. */
 const TEAPOT_TURN = Math.PI / 2 + 0.2
 const CUP = { x: -0.55, z: 1.35 }
+/** Three postcards on the table: x, z and turn. */
+const POSTCARDS: [number, number, number][] = [
+  [-1.55, 2.45, 0.3],
+  [-1.15, 2.6, -0.2],
+  [-0.8, 2.35, 0.65],
+]
+const POSTCARD_NAMES = ["postcard_03", "postcard_07", "postcard_12"]
 const LAMP = { x: -8.6, z: -9.6 }
 
 type Set = [WebGLTexture, WebGLTexture, WebGLTexture]
@@ -95,6 +102,8 @@ export function createRoom(ctx: RoomCtx) {
     models[id] = await loadModel(gl, `/models/${id}/${id}.gltf`)
   }
   const ready = Promise.all([
+    model("postcard_set_01"),
+    model("book_encyclopedia_set_01"),
     ...["floor", "wall", "stone", "rug"].map(set),
     ...["sofa_02", "throw_pillows_01", "tea_set_01", "mantel_clock_01", "brass_candleholders", "vintage_oil_lamp", "side_table_01", "wooden_bookshelf_worn", "fancy_picture_frame_01", "Rockingchair_01"].map(model),
   ])
@@ -189,6 +198,8 @@ export function createRoom(ctx: RoomCtx) {
     drawModel("side_table_01", SIDE)
     drawModel("vintage_oil_lamp", LAMP_AT)
     drawModel("wooden_bookshelf_worn", SHELF)
+    // a run of encyclopedias along the top of the bookshelf
+    drawModel("book_encyclopedia_set_01", mul(SHELF, translate(-1.35, 2.06 * M, -0.2)))
     drawModel("Rockingchair_01", CHAIR)
     drawModel("brass_candleholders", translate(FIRE.x - 0.4, MANTEL_Y + 0.4, breastFront + 0.3))
     drawModel("mantel_clock_01", translate(FIRE.x + 3.1, MANTEL_Y + 0.4, breastFront + 0.3))
@@ -228,6 +239,13 @@ export function createRoom(ctx: RoomCtx) {
       drawFurniture()
       drawGlow()
     },
+    /** A part laid flat on the table, ignoring how the model stood it up. */
+    drawFlat(id: string, name: string, place: Mat4) {
+      const p = models[id].parts.find((q) => q.name === name)
+      if (!p) return
+      bindSet(p.material.diffuse, p.material.normal, p.material.arm)
+      draw({ vao: p.vao, count: p.count, indexType: p.indexType }, mul(place, scale(M, M, M)), MODE.prop, () => gl.uniform4f(U.uTint, 1, 1, 1, 1))
+    },
     /** The tea things on the coffee table: drawn sharp, with the radio. */
     drawTable(tableY: number, pre: Mat4 = identity()) {
       const at = (x: number, z: number, a: number) => mul(pre, translate(x, tableY, z), rotateY(a))
@@ -235,6 +253,9 @@ export function createRoom(ctx: RoomCtx) {
       drawPart("tea_set_01", "tea_set_01_teapot_01_lid", mul(at(TEAPOT.x, TEAPOT.z, TEAPOT_TURN), translate(0, 0.002 * M, 0)))
       drawPart("tea_set_01", "tea_set_01_saucer_circular_03", at(CUP.x, CUP.z, 0))
       drawPart("tea_set_01", "tea_set_01_cup_small_01", mul(at(CUP.x, CUP.z, 0.9), translate(0, 0.012 * M, 0)))
+      // three postcards, fanned out where someone left them
+      for (const [k, [x, z, a]] of POSTCARDS.entries())
+        this.drawFlat("postcard_set_01", POSTCARD_NAMES[k], mul(at(x, z, a), translate(0, 0.003 + k * 0.002, 0)))
     },
     /** Footprints of the tea things, for their contact shadows on the table. */
     tableOccluders() {

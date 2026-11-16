@@ -2,6 +2,8 @@ import * as React from "react"
 import { createStage, supportsHtmlInCanvas } from "@/gl/stage"
 import { BackLabel, Controls, Dial } from "@/ui/panels"
 import { installHardware } from "@/lib/install"
+import { NewspaperPage, PaperAnnouncer } from "@/ui/Newspaper"
+import { PAGE_COUNT, usePaper } from "@/ui/paperStore"
 import { startAudio } from "@/radio/audio"
 import { loading } from "@/gl/assets"
 
@@ -23,25 +25,43 @@ function Loading({ ready, entered, onEnter }: { ready: boolean; entered: boolean
   }, [ready])
   const pct = Math.round((ready ? 1 : share) * 100)
   return (
-    <div className="loading" data-ready={ready || undefined} data-done={entered || undefined} aria-hidden={entered || undefined}>
-      <div className="valve" style={{ "--warm": ready ? 1 : share } as React.CSSProperties}>
-        <span className="filament" />
+    <div className="loading" data-ready={ready || undefined} data-done={entered || undefined} inert={entered}>
+      <div className="welcome">
+        <div className="valve" style={{ "--warm": ready ? 1 : share } as React.CSSProperties}>
+          <span className="filament" />
+        </div>
+        <h1>Kia ora, and welcome.</h1>
+        <p className="welcome-line">
+          Come in out of the cold. The fire's lit, the tea's just brewed, and there's an old wireless on the table.
+          Make yourself comfortable.
+        </p>
+        {ready ? (
+          <>
+            <button
+              ref={enter}
+              className="enter"
+              onClick={() => {
+                // let go of focus before the welcome becomes inert and fades away
+                enter.current?.blur()
+                onEnter()
+              }}
+            >
+              Come in
+            </button>
+            <small className="welcome-note">Best with the sound on.</small>
+          </>
+        ) : (
+          <>
+            <p className="warming" role="status" aria-live="polite">
+              Warming up the valves…
+            </p>
+            <div className="bar" aria-hidden>
+              <span style={{ width: `${pct}%` }} />
+            </div>
+            <small>{pct}%</small>
+          </>
+        )}
       </div>
-      <p role="status" aria-live="polite">
-        {ready ? "The valves are warm." : "Warming up the valves…"}
-      </p>
-      {ready ? (
-        <button ref={enter} className="enter" onClick={onEnter}>
-          Enter
-        </button>
-      ) : (
-        <>
-          <div className="bar" aria-hidden>
-            <span style={{ width: `${pct}%` }} />
-          </div>
-          <small>{pct}%</small>
-        </>
-      )}
     </div>
   )
 }
@@ -52,6 +72,8 @@ export function App() {
   const controls = React.useRef<HTMLDivElement>(null)
   const label = React.useRef<HTMLDivElement>(null)
   const tag = React.useRef<HTMLAnchorElement>(null)
+  const pages = React.useRef<HTMLDivElement[]>([])
+  const paperHeld = usePaper().held
   const [supported] = React.useState(supportsHtmlInCanvas)
   const [error, setError] = React.useState<string | null>(null)
   const [focused, setFocused] = React.useState(false)
@@ -65,7 +87,7 @@ export function App() {
     try {
       return createStage(
         canvas.current!,
-        { dial: dial.current!, controls: controls.current!, label: label.current!, tag: tag.current! },
+        { dial: dial.current!, controls: controls.current!, label: label.current!, tag: tag.current!, pages: pages.current },
         { onFocusChange: setFocused, onReady: () => setReady(true) },
       )
     } catch (e) {
@@ -95,6 +117,10 @@ export function App() {
         <div ref={label} drawable="">
           <BackLabel />
         </div>
+        {/* the newspaper on the table: Justin's CV over four pages, picked up to read */}
+        {Array.from({ length: PAGE_COUNT }, (_, i) => (
+          <NewspaperPage key={i} index={i} ref={(el) => void (pages.current[i] = el!)} />
+        ))}
         {/* a gift tag tied to the teapot: a real link, drawn into the room */}
         <a
           ref={tag}
@@ -115,12 +141,15 @@ export function App() {
         </a>
       </canvas>
       <div className="hud">
-        {focused
-          ? "Drag to turn it over · Shift-drag to roll · Scroll to bring it closer · Double-click the room to put it down"
-          : "Double-click the radio to pick it up"}
+        {paperHeld
+          ? "Turn the pages with the buttons or the arrow keys · Double-click away (or press Escape) to put it down"
+          : focused
+            ? "Drag to turn it over · Shift-drag to roll · Scroll to bring it closer · Double-click the room to put it down"
+            : "Double-click the radio, or the newspaper, to pick it up"}
         <br />
         Music: public domain recordings via Wikimedia Commons
       </div>
+      <PaperAnnouncer />
       <Loading
         ready={ready}
         entered={entered}

@@ -223,3 +223,22 @@ export function spheres(centres: [number, number, number][], radius: number | nu
   })
   return { data: new Float32Array(v), index: new Uint32Array(idx) }
 }
+
+/** A unit quad like quad(), subdivided along x so it can bend (a newspaper page). */
+export function grid(nx = 28, ny = 2): MeshData {
+  const v: number[] = []
+  const idx: number[] = []
+  for (let j = 0; j <= ny; j++)
+    for (let i = 0; i <= nx; i++) {
+      const u = i / nx
+      const w = j / ny
+      v.push(u - 0.5, 0.5 - w, 0, 0, 0, 1, u, w)
+    }
+  for (let j = 0; j < ny; j++)
+    for (let i = 0; i < nx; i++) {
+      const a = j * (nx + 1) + i
+      const b = a + nx + 1
+      idx.push(a, b + 1, a + 1, a, b, b + 1)
+    }
+  return { data: new Float32Array(v), index: new Uint32Array(idx) }
+}

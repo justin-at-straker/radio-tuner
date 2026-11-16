@@ -1,4 +1,4 @@
-import { disc, knob, quad, roundedBox, slab, type MeshData } from "./geometry"
+import { disc, grid, knob, quad, roundedBox, slab, type MeshData } from "./geometry"
 import {
   identity,
   invert,
@@ -25,6 +25,8 @@ import { fragment, MODE, vertex } from "./shaders"
 import { loadHdr, loadTexture } from "./assets"
 import { createRoom, FLOOR, TEAPOT } from "./room"
 import { CONTROLS, DIAL, KNOBS, LABEL, needleU, PX_PER_UNIT } from "@/ui/panels"
+import { PAPER } from "@/ui/Newspaper"
+import { PAGES_IN_VIEW, paperStore } from "@/ui/paperStore"
 import { radio } from "@/radio/store"
 import { setRadioCloseness, signal } from "@/radio/audio"
 
@@ -62,6 +64,19 @@ const TABLE_Y = -0.75
 /** The gift tag on the teapot: its size in CSS px, and where its ribbon ties on. */
 const TAG = { w: 200, h: 112 }
 const TEAPOT_KNOB = 0.78
+/** The sheets under the open page sit a little off true: [x, y] in page widths and heights. */
+const STACK: [number, number][] = [
+  [0.007, -0.005],
+  [0.004, 0.008],
+]
+const IDENTITY = identity()
+/** The newspaper: folded on the front right of the table, or held up to read. */
+const PAPER_AT: [number, number, number] = [1.55, TABLE_Y + 0.006, 2.35]
+const PAPER_YAW = 0.22
+const PAPER_SCALE = 0.65
+/** Where it's held up to read, over the table, and how far back you sit to read it. */
+const PAPER_READ: [number, number, number] = [0.25, 0, 3.0]
+const PAPER_VIEW_DIST = 3.5
 // turns the room so the fire is off to the right, lighting the radio from the side
 const ENV_ROT = 0
 const DIAL_AT = { x: -0.12, y: -0.14 }
@@ -115,7 +130,7 @@ const FOCUS_DIST = 3.4
 
 export function createStage(
   canvas: HTMLCanvasElement,
-  els: { dial: HTMLElement; controls: HTMLElement; label: HTMLElement; tag: HTMLElement },
+  els: { dial: HTMLElement; controls: HTMLElement; label: HTMLElement; tag: HTMLElement; pages: HTMLElement[] },
   opts: { onFocusChange?: (focused: boolean) => void; onReady?: () => void } = {},
 ) {
   const cv = canvas as HtmlCanvas
@@ -191,6 +206,14 @@ export function createStage(
   ]
   // the gift tag tied to the teapot: a link, placed in the room each frame
   const tag = makePanel(els.tag, TAG, { x: 0, y: 0 }, false, MODE.label)
+  // the newspaper on the table (Justin's CV): four pages, picked up to read
+  // and turned. Whether it's held and which page is open live in paperStore,
+  // shared with the pages' own buttons.
+  const pages = els.pages.map((el) => makePanel(el, PAPER, { x: 0, y: 0 }, false, MODE.label))
+  const pageMesh = upload(grid())
+  let pf = 0 // 0 on the table .. 1 held up to read, eased
+  let shown = 0 // the view open, easing through turns (1.5 is the second sheet half turned)
+  const paperHeld = () => paperStore.get().held
 
   // Pictures of the HTML at 2x for crispness when you lean in; falls back to
   // the browser's own size if this build won't take a size.
@@ -287,7 +310,7 @@ export function createStage(
   }
   const hoverCursor = (e: PointerEvent) => {
     if (drag) return setCursor("grabbing")
-    if (e.target !== canvas) return setCursor("")
+    if (e.target !== canvas || paperHeld()) return setCursor("")
     const over = hitsRadio(e.clientX, e.clientY)
     setCursor(over ? (focused ? "grab" : "pointer") : "")
   }
@@ -332,13 +355,32 @@ export function createStage(
     focusDist = Math.min(5, Math.max(2.2, focusDist * Math.exp(e.deltaY * 0.001)))
   }
   const onDbl = (e: MouseEvent) => {
+    // the newspaper: double-click it to pick it up, anywhere else to put it down
+    const onPaper = e.target instanceof Node && els.pages.some((el) => el.contains(e.target as Node))
+    if (paperHeld()) {
+      if (!onPaper) paperStore.set({ held: false })
+      return
+    }
+    if (onPaper) {
+      if (!focused) {
+        window.getSelection()?.removeAllRanges()
+        paperStore.set({ held: true })
+      }
+      return
+    }
     // the panels are part of the radio, so a double-click on them counts too
     const onRadio = e.target !== canvas || hitsRadio(e.clientX, e.clientY)
     if (!focused && onRadio) setFocused(true)
     else if (focused && !onRadio) setFocused(false)
   }
   const onKey = (e: KeyboardEvent) => {
-    if (e.key === "Escape" && focused) setFocused(false)
+    const typing = e.target instanceof HTMLElement && e.target.closest("input, textarea")
+    if (paperHeld() && !typing && (e.key === "ArrowRight" || e.key === "ArrowLeft")) {
+      paperStore.set({ view: paperStore.get().view + (e.key === "ArrowRight" ? 1 : -1) })
+      return
+    }
+    if (e.key === "Escape" && paperHeld()) paperStore.set({ held: false })
+    else if (e.key === "Escape" && focused) setFocused(false)
   }
   window.addEventListener("keydown", onKey)
   const noMenu = (e: Event) => e.target === canvas && e.preventDefault()
@@ -428,6 +470,20 @@ export function createStage(
       q = FOCUS_START
       focusDist = FOCUS_DIST
     }
+    // the newspaper: lifted or lying, and the page turning
+    const ps = paperStore.get()
+    pf += Math.sign((ps.held ? 1 : 0) - pf) * Math.min(Math.abs((ps.held ? 1 : 0) - pf), dt / 0.6)
+    shown += Math.sign(ps.view - shown) * Math.min(Math.abs(ps.view - shown), dt / 0.7)
+    const pe = pf * pf * (3 - 2 * pf)
+    const paperW = unit(PAPER.w) * PAPER_SCALE
+    const paperH = unit(PAPER.h) * PAPER_SCALE
+    // held: upright over the table, its foot clear of the top, the camera
+    // rising to meet it; open past the front page, centred on the spine
+    // the camera follows what's open: the front page, the spread's spine, the back page
+    const across = Math.min(1, shown) + Math.max(0, Math.min(1, shown - 1))
+    const readAt: [number, number, number] = [PAPER_READ[0], TABLE_Y + paperH / 2 + 0.12, PAPER_READ[2]]
+    const readLook: [number, number, number] = [readAt[0] - (paperW / 2) * across, readAt[1], readAt[2]]
+
     // valves warm up slowly and cool a little faster
     power += ((s.power ? 1 : 0) - power) * (1 - Math.exp(-dt * (s.power ? 1.6 : 3)))
     level += (signal.level * 4 - level) * (1 - Math.exp(-dt * 20))
@@ -437,6 +493,10 @@ export function createStage(
     for (const p of panels) if (p.dirty) takePicture(p)
     if (changed?.includes(tag.el)) tag.dirty = true
     if (tag.dirty) takePicture(tag)
+    for (const p of pages) {
+      if (changed?.includes(p.el)) p.dirty = true
+      if (p.dirty) takePicture(p)
+    }
 
     const W = canvas.clientWidth
     const H = canvas.clientHeight
@@ -454,8 +514,11 @@ export function createStage(
     // picked up and brought close, the radio sounds nearer: drier, more present
     setRadioCloseness(e)
     const lerp3 = (a: number[], b: number[]) => a.map((v, i) => v + (b[i] - v) * e) as [number, number, number]
-    const eye = lerp3(EYE, [HELD[0], HELD[1] + 0.1, HELD[2] + focusDist])
-    const view = lookAt(eye, lerp3(TARGET, HELD))
+    const radioEye = lerp3(EYE, [HELD[0], HELD[1] + 0.1, HELD[2] + focusDist])
+    const radioLook = lerp3(TARGET, HELD)
+    const mixP = (a: number[], b: number[]) => a.map((v, i) => v + (b[i] - v) * pe) as [number, number, number]
+    const eye = mixP(radioEye, [readLook[0], readLook[1] + 0.05, readLook[2] + PAPER_VIEW_DIST])
+    const view = lookAt(eye, mixP(radioLook, readLook))
     const rot = quatToMat(quatSlerp(REST_Q, q, e))
     const pos = lerp3(REST_POS, HELD)
     pos[1] += Math.sin(e * Math.PI) * 0.35
@@ -657,6 +720,70 @@ export function createStage(
       gl.uniformMatrix4fv(U.uCabInv, false, invert(model))
     }
 
+    // The newspaper's frame: pivoting on its bottom edge, so lifting it from
+    // the table it rises up rather than swinging through the tabletop.
+    const lerp = (a: number, b: number) => a + (b - a) * pe
+    const restFoot: [number, number, number] = [
+      PAPER_AT[0] + Math.sin(PAPER_YAW) * (paperH / 2),
+      PAPER_AT[1],
+      PAPER_AT[2] + Math.cos(PAPER_YAW) * (paperH / 2),
+    ]
+    const readFoot: [number, number, number] = [readAt[0], readAt[1] - paperH / 2, readAt[2]]
+    const foot: [number, number, number] = [
+      lerp(restFoot[0], readFoot[0]),
+      lerp(restFoot[1], readFoot[1]) + Math.sin(pe * Math.PI) * 0.25,
+      lerp(restFoot[2], readFoot[2]),
+    ]
+    const paperFrame = mul(translate(...foot), rotateY(lerp(PAPER_YAW, 0)), rotateX(lerp(-Math.PI / 2, 0)))
+    const pagePlace = mul(paperFrame, translate(0, paperH / 2, 0), scale(paperW, paperH, 1))
+    for (const p of pages) p.place = pagePlace
+    /** Draws one sheet: its front page and, on the back, the next page; rolled
+     *  `flip` radians about the spine (0 open, PI turned over), `z` its place
+     *  in the stack, `at` any nudge off true. */
+    const drawSheet = (pre: Mat4, sheet: number, flip: number, z: number, at: Mat4, depthOnly: boolean) => {
+      if (!depthOnly) {
+        gl.activeTexture(gl.TEXTURE8)
+        gl.bindTexture(gl.TEXTURE_2D, pages[sheet * 2 + 1].tex)
+        gl.activeTexture(gl.TEXTURE0)
+        gl.bindTexture(gl.TEXTURE_2D, pages[sheet * 2].tex)
+      }
+      const where = mul(pre, pagePlace, at)
+      gl.uniformMatrix4fv(U.uCab, false, where)
+      draw(pageMesh, where, MODE.label, () => {
+        gl.uniform2f(U.uSize, paperW, paperH)
+        gl.uniform1i(U.uPage, 1)
+        gl.uniform1f(U.uFlip, flip)
+        gl.uniform1f(U.uCurl, -1.1)
+        gl.uniform1f(U.uPageZ, paperW)
+        gl.uniform1f(U.uLeafZ, z)
+        gl.uniform1f(U.uReadable, pre === IDENTITY ? pe * 0.92 : 0)
+      })
+      gl.uniform1i(U.uPage, 0)
+      gl.uniform1f(U.uLeafZ, 0)
+      gl.uniform1f(U.uReadable, 0)
+    }
+    /** The paper as it stands: two sheets printed on both sides, the second
+     *  sitting a touch off true under the first, closed at the spine. Lying on
+     *  the table its open edge lifts a little, as folded newsprint never quite
+     *  settles; held up, it bows softly. Turned sheets land on top, on the left. */
+    // the inner sheet is a touch off true at its open edges, but joined to the
+    // outer one along the fold: so its nudge pivots on the spine (x = -0.5)
+    const sheetNudge = mul(translate(-0.5, 0, 0), scale(1 + STACK[0][0], 1 + STACK[0][1], 1), translate(0.5, 0, 0))
+    const drawPaper = (pre: Mat4, depthOnly = false) => {
+      gl.disable(gl.CULL_FACE)
+      if (!depthOnly) bindSet(...sets.linen)
+      const lift = (1 - pe) * 0.035
+      const turn0 = Math.max(lift, Math.min(1, shown) * Math.PI)
+      const turn1 = Math.max(lift * 0.6, Math.max(0, Math.min(1, shown - 1)) * Math.PI)
+      gl.uniform1f(U.uBow, pe * 0.06)
+      drawSheet(pre, 1, turn1, turn1 > Math.PI / 2 ? 0.006 : -0.003, sheetNudge, depthOnly)
+      drawSheet(pre, 0, turn0, turn0 > Math.PI / 2 ? 0.002 : 0, IDENTITY, depthOnly)
+      gl.uniform1f(U.uBow, 0)
+      gl.enable(gl.CULL_FACE)
+      gl.uniformMatrix4fv(U.uCab, false, model)
+      gl.uniformMatrix4fv(U.uCabInv, false, invert(model))
+    }
+
     // The lamp's shadows: draw the radio and the tea things as depth only,
     // seen from the lamp, over the whole space the radio can move through.
     const keyN = [key[0] / kl, key[1] / kl, key[2] / kl]
@@ -681,6 +808,7 @@ export function createStage(
     drawRadio(model)
     room.drawTable(TABLE_Y)
     drawTag(identity(), true)
+    drawPaper(IDENTITY, true)
     gl.uniform1i(U.uDepthOnly, 0)
     gl.disable(gl.POLYGON_OFFSET_FILL)
     gl.uniformMatrix4fv(U.uView, false, view)
@@ -708,6 +836,7 @@ export function createStage(
     drawRadio(mul(mirror, model))
     room.drawTable(TABLE_Y, mirror)
     drawTag(mirror)
+    drawPaper(mirror)
     gl.uniform1i(U.uReflect, 0)
     gl.frontFace(gl.CCW)
     gl.clear(gl.DEPTH_BUFFER_BIT)
@@ -725,6 +854,7 @@ export function createStage(
     drawRadio(model)
 
     drawTag(identity())
+    drawPaper(IDENTITY)
 
     // tell the browser where each panel is, so hit testing follows the drawing
     const vp = new Float32Array([W / 2, 0, 0, 0, 0, -H / 2, 0, 0, 0, 0, 1, 0, W / 2, H / 2, 0, 1])
@@ -746,6 +876,18 @@ export function createStage(
     // ...and the tag, which lives in the room rather than on the radio
     const tagFrom = mul(translate(-0.5, 0.5, 0), scale(1 / TAG.w, -1 / TAG.h, 1))
     cv.updateElementGeometry(tag.el, { canvasTransform: DOMMatrix.fromFloat32Array(mul(toScreen, tag.place, tagFrom)) })
+    // only the open pages are where you can click; the rest are out of reach.
+    // A right-hand page lies where the sheet does; a left-hand page is the back
+    // of a turned sheet, one page width to the left.
+    const paperFrom = mul(translate(-0.5, 0.5, 0), scale(1 / PAPER.w, -1 / PAPER.h, 1))
+    const settled = Math.abs(shown - ps.view) < 0.02
+    const openPages = ps.held ? PAGES_IN_VIEW[ps.view] : [0]
+    pages.forEach((p, i) => {
+      if (!settled || !openPages.includes(i)) return cv.clearElementGeometry?.(p.el)
+      const sheetAt = i >= 2 ? sheetNudge : IDENTITY
+      const side = i % 2 === 1 ? translate(-1, 0, 0) : IDENTITY
+      cv.updateElementGeometry(p.el, { canvasTransform: DOMMatrix.fromFloat32Array(mul(toScreen, pagePlace, sheetAt, side, paperFrom)) })
+    })
   }
 
   // the scanned materials and the HDRI; draw nothing until they're in
@@ -777,7 +919,10 @@ export function createStage(
     loadSet("plywood").then((t) => (sets.ply = t)),
     loadSet("table").then((t) => (sets.table = t)),
     room.ready,
-  ]).then(([envTex, wood]) => {
+    loadTexture(gl, "/tex/paper_fibre_diff.jpg", true),
+    loadTexture(gl, "/tex/paper_fibre_nor_gl.jpg", false),
+    loadTexture(gl, "/tex/paper_crease_nor_gl.jpg", false),
+  ]).then(([envTex, wood, , , , , paperD, paperN, creaseN]) => {
     if (disposed) return
     gl.useProgram(prog)
     gl.activeTexture(gl.TEXTURE1)
@@ -790,6 +935,14 @@ export function createStage(
       gl.activeTexture(gl.TEXTURE2 + i)
       gl.bindTexture(gl.TEXTURE_2D, t)
     })
+    ;[paperD, paperN, creaseN].forEach((t, i) => {
+      gl.activeTexture(gl.TEXTURE9 + i)
+      gl.bindTexture(gl.TEXTURE_2D, t as WebGLTexture)
+    })
+    gl.uniform1i(U.uPaperD, 9)
+    gl.uniform1i(U.uPaperN, 10)
+    gl.uniform1i(U.uCreaseN, 11)
+    gl.uniform1i(U.uTexBack, 8)
     gl.uniform1i(U.uWoodD, 2)
     gl.uniform1i(U.uWoodN, 3)
     gl.uniform1i(U.uWoodR, 4)

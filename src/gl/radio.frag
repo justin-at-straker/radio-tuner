@@ -40,6 +40,11 @@ uniform vec3 uEmit;
 uniform vec3 uLightPos[4];
 uniform vec3 uLightCol[4];
 uniform int uLinearOut;
+uniform highp int uPage; // drawing a newspaper page (highp, to match the vertex shader)
+uniform sampler2D uTexBack;           // the page printed on the back of the sheet
+uniform sampler2D uPaperD, uPaperN;   // newsprint fibre
+uniform sampler2D uCreaseN;           // a well-handled paper's soft creases
+uniform float uReadable; // 0..1: how far a page is held up to read
 uniform int uDepthOnly;            // the lamp's shadow pass: depth only, no shading
 uniform highp sampler2DShadow uShadowMap;
 uniform mat4 uLightVP;             // world -> the lamp's shadow map
@@ -508,8 +513,32 @@ void main() {
       float burst = step(0.82, hash1(floor(uTime * 9.0)));
       uv.x += (hash1(row + floor(uTime * 30.0)) - 0.5) * uHiss * uPower * (0.004 + burst * 0.03);
     }
+    // the back of a newspaper page: the printing shows through, faint (and
+    // mirrored, as the sheet is seen from behind)
+    bool backOfPage = uMode == 8 && !gl_FrontFacing;
     vec4 t = texture(uTex, uv);
     vec3 print = srgbToLinear(t.rgb);
+    if (backOfPage && uPage == 1) {
+      // a newspaper sheet is printed on both sides: its back is the next page
+      t = texture(uTexBack, vec2(1.0 - uv.x, uv.y));
+      print = srgbToLinear(t.rgb);
+    } else if (backOfPage) {
+      print = mix(srgbToLinear(vec3(0.91, 0.87, 0.78)), print, 0.1);
+    }
+    vec2 pu = vUv * vec2(2.2, 3.1);
+    if (uPage == 1) {
+      // newsprint fibre under the ink: a little unevenness in the paper itself
+      float fibre = dot(texture(uPaperD, pu).rgb, vec3(0.333));
+      print *= mix(1.0, fibre / 0.93, 0.55);
+      // the gutter: the page curves into the fold, so it darkens toward the spine
+      print *= 1.0 - 0.28 * exp(-vUv.x * 28.0);
+    }
+    if (uPage == 1) {
+      float edge = min(min(vUv.x, 1.0 - vUv.x), min(vUv.y, 1.0 - vUv.y));
+      float aged = 1.0 - smoothstep(0.0, 0.035, edge + 0.01 * noise(vec3(vUv * 60.0, 3.0)));
+      print *= mix(vec3(1.0), vec3(0.9, 0.8, 0.62), aged * 0.55);
+      print *= 0.965 + 0.07 * noise(vec3(vUv * vec2(700.0, 980.0), 7.0));
+    }
 
     if (uMode == 7) {
       // printed glass, lit from behind by two bulbs, under a glass sheet
@@ -543,8 +572,17 @@ void main() {
       Surf s = plain(print, normalize(n + (mat3(uCab) * vec3(-fib.x, fib.y, 0.0)) * 0.12), 0.85);
       vec2 edge = min(vUv, 1.0 - vUv) * vec2(uSize.x / uSize.y, 1.0);
       s.ao = 0.75 + 0.25 * smoothstep(0.0, 0.04, min(edge.x, edge.y));
+      if (uPage == 1) {
+        // the paper's surface: fine fibre, and the soft creases of a paper that's been read
+        vec2 fn = texture(uPaperN, pu).xy * 2.0 - 1.0;
+        vec2 cn = texture(uCreaseN, vUv).xy * 2.0 - 1.0;
+        s.N = perturb(n, vWorld, vUv, normalize(vec3(fn * 0.5 + cn * 0.35, 1.0)));
+        s.rough = 0.9;
+      }
       c = shade(s);
       gAlpha = t.a; // a card can have a shape (the teapot's tag does)
+      // held up to read, a page turns toward the light: lift it toward plain print
+      c = mix(c, print * 0.85, uReadable);
     }
   }
 

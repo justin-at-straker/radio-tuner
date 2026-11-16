@@ -2,7 +2,7 @@
 import { mkdirSync, writeFileSync, existsSync } from "node:fs"
 import { dirname } from "node:path"
 const UA = { "User-Agent": "radio-tuner/0.1 (personal project)" }
-const MODELS = ["sofa_02", "throw_pillows_01", "tea_set_01", "decorative_book_set_01", "mantel_clock_01", "brass_candleholders", "vintage_oil_lamp", "side_table_01", "wooden_bookshelf_worn", "fancy_picture_frame_01", "Rockingchair_01"]
+const MODELS = ["postcard_set_01", "book_encyclopedia_set_01", "sofa_02", "throw_pillows_01", "tea_set_01", "decorative_book_set_01", "mantel_clock_01", "brass_candleholders", "vintage_oil_lamp", "side_table_01", "wooden_bookshelf_worn", "fancy_picture_frame_01", "Rockingchair_01"]
 const TEXTURES = { floor: "dark_wooden_planks", wall: "beige_wall_001", stone: "castle_brick_02_red", rug: "fabric_pattern_07" }
 const get = async (url) => {
   for (const wait of [0, 4000, 15000, 45000]) {
