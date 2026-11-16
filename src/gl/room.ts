@@ -42,11 +42,11 @@ const MANTEL_Y = FLOOR + 6
 const WINDOW = { x: 8.2, y: FLOOR + 7.5, w: 5, h: 6.5 }
 const TREE = { x: 6.6, z: -8.6, h: 10.5, r: 2.9 }
 /** The teacup, a teabag in it: its tag is the GitHub link. */
-export const CUP = { x: -1.0, z: 2.85, turn: 0.9 }
+export const CUP = { x: -1.0, z: 3.1, turn: 0.9 }
 /** The typewriter, front left of the radio, turned toward you. Modelled
   *  4.8 m wide; a desktop machine like this one is about 0.36 m, so in proportion
  *  to the radio (0.48 m). */
-export const TYPEWRITER = { x: -1.25, z: 1.2, turn: 0.3, scale: 0.075 }
+export const TYPEWRITER = { x: -1.5, z: 1.2, turn: 0.3, scale: 0.075 }
 /** Three postcards on the table: x, z and turn. */
 const POSTCARDS: [number, number, number][] = [
   [0.05, 2.95, 0.3],

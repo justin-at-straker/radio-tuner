@@ -46,6 +46,8 @@ uniform sampler2D uPaperD, uPaperN;   // newsprint fibre
 uniform sampler2D uCreaseN;           // a well-handled paper's soft creases
 uniform float uReadable; // 0..1: how far a page is held up to read
 uniform float uSheer;    // 0..1: how much light a sheet lets through (newsprint, typing paper)
+uniform float uSeeThrough; // 0..1: how much of the light behind a thin sheet glows through it
+uniform vec2 uViewport;     // the canvas in pixels, to find what's behind a fragment
 uniform int uDepthOnly;            // the lamp's shadow pass: depth only, no shading
 uniform highp sampler2DShadow uShadowMap;
 uniform mat4 uLightVP;             // world -> the lamp's shadow map
@@ -608,6 +610,14 @@ void main() {
         float lit = clamp(dot(tl, vec3(0.3, 0.5, 0.2)) * 0.6, 0.0, 1.0);
         c *= 1.0 - inkBehind * lit * 0.32 * uSheer;
         c += print * tl * 0.2 * uSheer;
+      }
+      if (uSeeThrough > 0.0) {
+        // paper scatters what's behind it: no shapes, just the light, so the
+        // fire is a warm glow through the typing paper. A very blurred mip of
+        // the room behind, at this point on screen. Ink stops it.
+        float ink = clamp(1.0 - dot(print, vec3(0.333)) / 0.6, 0.0, 1.0);
+        vec3 behind = textureLod(uRoomTex, gl_FragCoord.xy / uViewport, 5.5).rgb;
+        c += behind * print * uSeeThrough * (1.0 - ink);
       }
     }
   }

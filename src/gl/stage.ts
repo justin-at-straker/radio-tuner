@@ -841,12 +841,17 @@ export function createStage(
       gl.activeTexture(gl.TEXTURE0)
       gl.bindTexture(gl.TEXTURE_2D, typePage.tex)
       gl.uniformMatrix4fv(U.uCab, false, sheetPlace)
+      // thin typing paper: the fire behind it shows through, a little less
+      // once you're sat close reading it
       draw(sheetMesh, sheetPlace, MODE.label, () => {
         gl.uniform2f(U.uSize, sheetSize[0], sheetSize[1])
         gl.uniform1f(U.uReadable, te * 0.85)
         gl.uniform1f(U.uSheer, 0.8)
+        gl.uniform1f(U.uSeeThrough, 0.5 - 0.15 * te)
+        gl.uniform2f(U.uViewport, canvas.width, canvas.height)
       })
       gl.uniform1f(U.uSheer, 0)
+      gl.uniform1f(U.uSeeThrough, 0)
       gl.uniform1f(U.uReadable, 0)
       gl.enable(gl.CULL_FACE)
       gl.uniformMatrix4fv(U.uCab, false, model)
@@ -1013,8 +1018,12 @@ export function createStage(
     drawRadio(model)
 
     drawTag(identity())
-    drawPaper(IDENTITY)
     drawTypeSheet()
+    // Held up to read, the paper is in front of everything: drawn last, over
+    // whatever stands on the table. (Rising off the table, it's still among
+    // them, so it doesn't pop in front of the cup on its way up.)
+    if (pe > 0.5) gl.clear(gl.DEPTH_BUFFER_BIT)
+    drawPaper(IDENTITY)
 
     // tell the browser where each panel is, so hit testing follows the drawing
     const vp = new Float32Array([W / 2, 0, 0, 0, 0, -H / 2, 0, 0, 0, 0, 1, 0, W / 2, H / 2, 0, 1])
