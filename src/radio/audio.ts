@@ -122,6 +122,12 @@ export function startAudio() {
     void ctx.resume()
     return
   }
+  // One engine per page, ever. In development a hot reload can leave an older
+  // copy of this module running (another engine, its own streams, following
+  // the same dial); whichever copy starts now stops that one first.
+  const page = globalThis as unknown as { __radioEngineStop?: () => void }
+  page.__radioEngineStop?.()
+  page.__radioEngineStop = stopAudio
   ctx = new AudioContext()
   const c = ctx
   // the room's own sound: the fire, quietly, whatever the radio is doing
