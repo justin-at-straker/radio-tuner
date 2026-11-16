@@ -544,6 +544,7 @@ void main() {
       vec2 edge = min(vUv, 1.0 - vUv) * vec2(uSize.x / uSize.y, 1.0);
       s.ao = 0.75 + 0.25 * smoothstep(0.0, 0.04, min(edge.x, edge.y));
       c = shade(s);
+      gAlpha = t.a; // a card can have a shape (the teapot's tag does)
     }
   }
 

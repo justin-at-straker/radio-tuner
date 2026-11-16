@@ -2,6 +2,7 @@ import { disc, knob, quad, roundedBox, slab, type MeshData } from "./geometry"
 import {
   identity,
   invert,
+  rotateX,
   ortho,
   lookAt,
   mul,
@@ -22,7 +23,7 @@ import {
 } from "./math"
 import { fragment, MODE, vertex } from "./shaders"
 import { loadHdr, loadTexture } from "./assets"
-import { createRoom, FLOOR } from "./room"
+import { createRoom, FLOOR, TEAPOT } from "./room"
 import { CONTROLS, DIAL, KNOBS, LABEL, needleU, PX_PER_UNIT } from "@/ui/panels"
 import { radio } from "@/radio/store"
 import { setRadioCloseness, signal } from "@/radio/audio"
@@ -58,6 +59,9 @@ const FRONT = CAB.hz + 0.003
 const BACK = -CAB.hz - 0.003
 const unit = (px: number) => px / PX_PER_UNIT
 const TABLE_Y = -0.75
+/** The gift tag on the teapot: its size in CSS px, and where its ribbon ties on. */
+const TAG = { w: 200, h: 112 }
+const TEAPOT_KNOB = 0.78
 // turns the room so the fire is off to the right, lighting the radio from the side
 const ENV_ROT = 0
 const DIAL_AT = { x: -0.12, y: -0.14 }
@@ -111,7 +115,7 @@ const FOCUS_DIST = 3.4
 
 export function createStage(
   canvas: HTMLCanvasElement,
-  els: { dial: HTMLElement; controls: HTMLElement; label: HTMLElement },
+  els: { dial: HTMLElement; controls: HTMLElement; label: HTMLElement; tag: HTMLElement },
   opts: { onFocusChange?: (focused: boolean) => void; onReady?: () => void } = {},
 ) {
   const cv = canvas as HtmlCanvas
@@ -185,6 +189,8 @@ export function createStage(
     makePanel(els.controls, CONTROLS, CONTROLS_AT, false, MODE.controls),
     makePanel(els.label, LABEL, LABEL_AT, true, MODE.label),
   ]
+  // the gift tag tied to the teapot: a link, placed in the room each frame
+  const tag = makePanel(els.tag, TAG, { x: 0, y: 0 }, false, MODE.label)
 
   // Pictures of the HTML at 2x for crispness when you lean in; falls back to
   // the browser's own size if this build won't take a size.
@@ -429,6 +435,8 @@ export function createStage(
     // take pictures of whatever HTML changed
     if (changed) for (const p of panels) if (changed.includes(p.el)) p.dirty = true
     for (const p of panels) if (p.dirty) takePicture(p)
+    if (changed?.includes(tag.el)) tag.dirty = true
+    if (tag.dirty) takePicture(tag)
 
     const W = canvas.clientWidth
     const H = canvas.clientHeight
@@ -603,6 +611,52 @@ export function createStage(
         draw(knobMesh, mul(model, translate(at.x, at.y, CAB.hz), rotateZ(turn(v))), MODE.knob)
       }
     }
+    // The gift tag on the teapot, on a gold ribbon from the lid's knob,
+    // hanging down the front of the pot and swaying a little in the warm air.
+    // Placed once per frame, then drawn by every pass: the lamp's shadows,
+    // the reflection in the table, and the room itself.
+    const hang: [number, number, number] = [TEAPOT.x, TABLE_Y + 0.52, TEAPOT.z + 0.5]
+    const knob: [number, number, number] = [TEAPOT.x, TABLE_Y + TEAPOT_KNOB, TEAPOT.z]
+    const tagYaw = Math.atan2(eye[0] - hang[0], eye[2] - hang[2])
+    const swing = 0.05 * Math.sin(t * 0.9) + 0.018 * Math.sin(t * 2.3 + 1)
+    const tagW = unit(TAG.w) * 1.3
+    const tagH = unit(TAG.h) * 1.3
+    tag.place = mul(translate(...hang), rotateY(tagYaw), rotateZ(swing), rotateX(-0.1), translate(0, -tagH / 2 + 0.03, 0), scale(tagW, tagH, 1))
+    const rib = hang.map((v, i) => v - knob[i])
+    const ribLen = Math.hypot(...rib)
+    const yAxis = rib.map((v) => v / ribLen)
+    const xAxis = [yAxis[1], -yAxis[0], 0]
+    const xl = Math.hypot(...xAxis) || 1
+    const ribbon: Mat4 = new Float32Array([
+      (xAxis[0] / xl) * 0.018, (xAxis[1] / xl) * 0.018, 0, 0,
+      yAxis[0] * ribLen, yAxis[1] * ribLen, yAxis[2] * ribLen, 0,
+      0, 0, 1, 0,
+      (hang[0] + knob[0]) / 2, (hang[1] + knob[1]) / 2, (hang[2] + knob[2]) / 2, 1,
+    ])
+    /** Draws the ribbon and tag, under a placement (identity, or the table's mirror). */
+    const drawTag = (pre: Mat4, depthOnly = false) => {
+      gl.disable(gl.CULL_FACE)
+      draw(quadMesh, mul(pre, ribbon), MODE.brass)
+      if (!depthOnly) {
+        gl.enable(gl.BLEND)
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+        gl.depthMask(false)
+        bindSet(...sets.linen)
+        gl.activeTexture(gl.TEXTURE0)
+        gl.bindTexture(gl.TEXTURE_2D, tag.tex)
+      }
+      const at = mul(pre, tag.place)
+      gl.uniformMatrix4fv(U.uCab, false, at)
+      draw(quadMesh, at, MODE.label, () => gl.uniform2f(U.uSize, tagW, tagH))
+      if (!depthOnly) {
+        gl.depthMask(true)
+        gl.disable(gl.BLEND)
+      }
+      gl.enable(gl.CULL_FACE)
+      gl.uniformMatrix4fv(U.uCab, false, model)
+      gl.uniformMatrix4fv(U.uCabInv, false, invert(model))
+    }
+
     // The lamp's shadows: draw the radio and the tea things as depth only,
     // seen from the lamp, over the whole space the radio can move through.
     const keyN = [key[0] / kl, key[1] / kl, key[2] / kl]
@@ -626,6 +680,7 @@ export function createStage(
     gl.uniformMatrix4fv(U.uProj, false, lightProj)
     drawRadio(model)
     room.drawTable(TABLE_Y)
+    drawTag(identity(), true)
     gl.uniform1i(U.uDepthOnly, 0)
     gl.disable(gl.POLYGON_OFFSET_FILL)
     gl.uniformMatrix4fv(U.uView, false, view)
@@ -652,6 +707,7 @@ export function createStage(
     gl.uniform1f(U.uReflectY, TABLE_Y)
     drawRadio(mul(mirror, model))
     room.drawTable(TABLE_Y, mirror)
+    drawTag(mirror)
     gl.uniform1i(U.uReflect, 0)
     gl.frontFace(gl.CCW)
     gl.clear(gl.DEPTH_BUFFER_BIT)
@@ -667,8 +723,8 @@ export function createStage(
         draw(legMesh, mul(translate(TABLE_AT[0] + sx * TABLE_SIZE.rx * 0.62, FLOOR + legH / 2, TABLE_AT[2] + sz * TABLE_SIZE.rz * 0.58), scale(1, legH, 1)), MODE.table)
     room.drawTable(TABLE_Y)
     drawRadio(model)
-    gl.uniformMatrix4fv(U.uCab, false, model)
-    gl.uniformMatrix4fv(U.uCabInv, false, invert(model))
+
+    drawTag(identity())
 
     // tell the browser where each panel is, so hit testing follows the drawing
     const vp = new Float32Array([W / 2, 0, 0, 0, 0, -H / 2, 0, 0, 0, 0, 1, 0, W / 2, H / 2, 0, 1])
@@ -687,6 +743,9 @@ export function createStage(
       const m = mul(toScreen, model, p.place, fromElement)
       cv.updateElementGeometry(p.el, { canvasTransform: DOMMatrix.fromFloat32Array(m) })
     }
+    // ...and the tag, which lives in the room rather than on the radio
+    const tagFrom = mul(translate(-0.5, 0.5, 0), scale(1 / TAG.w, -1 / TAG.h, 1))
+    cv.updateElementGeometry(tag.el, { canvasTransform: DOMMatrix.fromFloat32Array(mul(toScreen, tag.place, tagFrom)) })
   }
 
   // the scanned materials and the HDRI; draw nothing until they're in

@@ -437,3 +437,67 @@ button.dial-station:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .loading .enter { animation: none; }
 }
+
+/* ---------------------------------------------------------------- the teapot's gift tag (a link) */
+
+.tag {
+  box-sizing: border-box;
+  width: 200px;
+  height: 112px;
+  padding: 30px 16px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #3a2410;
+  text-decoration: none;
+  background:
+    radial-gradient(120% 90% at 30% 20%, rgba(255, 255, 255, 0.35), transparent 60%),
+    linear-gradient(170deg, #f1e3c2, #e2cd9f);
+  /* a luggage-tag shape with a punched hole for the ribbon */
+  clip-path: polygon(22% 0, 78% 0, 100% 22%, 100% 100%, 0 100%, 0 22%);
+  -webkit-mask: radial-gradient(circle at 50% 13px, transparent 6px, #000 6.5px);
+  mask: radial-gradient(circle at 50% 13px, transparent 6px, #000 6.5px);
+}
+.tag-mark {
+  width: 38px;
+  height: 38px;
+  flex: none;
+  fill: #2a1a0c;
+}
+.tag-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.tag-maker {
+  font-family: Jost, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  text-transform: uppercase;
+}
+.tag-line {
+  font-family: "Courier Prime", monospace;
+  font-size: 13px;
+}
+/* a link: the hand over all of it, not the arrow the canvas sets for its drawn children */
+.stage > .tag,
+.stage > .tag * {
+  cursor: pointer;
+}
+.tag-link {
+  font-family: "Courier Prime", monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: #9b1c14;
+}
+.tag:hover .tag-link,
+.tag:focus-visible .tag-link {
+  text-decoration: underline;
+}
+.tag:focus-visible {
+  outline: none;
+  background: linear-gradient(170deg, #fff1d0, #ead6a8);
+}

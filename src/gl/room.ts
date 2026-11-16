@@ -41,7 +41,9 @@ const OPEN = { w: 4.2, h: 3.4, y: 0.5 } // the firebox opening, from the hearth
 const MANTEL_Y = FLOOR + 6
 const WINDOW = { x: 8.2, y: FLOOR + 7.5, w: 5, h: 6.5 }
 const TREE = { x: 6.6, z: -8.6, h: 10.5, r: 2.9 }
-const TEAPOT = { x: -1.75, z: 0.05 }
+export const TEAPOT = { x: -1.75, z: 0.05 }
+/** Side-on to you: spout to the right, handle to the left, the front clear for the tag. */
+const TEAPOT_TURN = Math.PI / 2 + 0.2
 const CUP = { x: -0.55, z: 1.35 }
 const LAMP = { x: -8.6, z: -9.6 }
 
@@ -229,8 +231,8 @@ export function createRoom(ctx: RoomCtx) {
     /** The tea things on the coffee table: drawn sharp, with the radio. */
     drawTable(tableY: number, pre: Mat4 = identity()) {
       const at = (x: number, z: number, a: number) => mul(pre, translate(x, tableY, z), rotateY(a))
-      drawPart("tea_set_01", "tea_set_01_teapot_01", at(TEAPOT.x, TEAPOT.z, 0.7))
-      drawPart("tea_set_01", "tea_set_01_teapot_01_lid", mul(at(TEAPOT.x, TEAPOT.z, 0.7), translate(0, 0.002 * M, 0)))
+      drawPart("tea_set_01", "tea_set_01_teapot_01", at(TEAPOT.x, TEAPOT.z, TEAPOT_TURN))
+      drawPart("tea_set_01", "tea_set_01_teapot_01_lid", mul(at(TEAPOT.x, TEAPOT.z, TEAPOT_TURN), translate(0, 0.002 * M, 0)))
       drawPart("tea_set_01", "tea_set_01_saucer_circular_03", at(CUP.x, CUP.z, 0))
       drawPart("tea_set_01", "tea_set_01_cup_small_01", mul(at(CUP.x, CUP.z, 0.9), translate(0, 0.012 * M, 0)))
     },

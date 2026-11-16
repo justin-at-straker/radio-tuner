@@ -1,0 +1,18 @@
+import { chromium } from "playwright"
+const browser = await chromium.launch({ channel: "chrome" })
+const page = await browser.newPage({ viewport: { width: 1280, height: 720 } })
+page.on("pageerror", (e) => console.log("pageerror:", e.message))
+await page.goto("http://localhost:5199/")
+await page.locator(".loading .enter").click({ timeout: 90000 })
+await page.waitForTimeout(2000)
+await page.screenshot({ path: "shots/8-tag.png" })
+const box = await page.locator("a.tag").boundingBox()
+console.log("tag box:", box)
+await page.mouse.move(box.x + box.width / 2, box.y + box.height * 0.6)
+await page.waitForTimeout(200)
+console.log("element under pointer:", await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.closest("a")?.href, [box.x + box.width / 2, box.y + box.height * 0.6]))
+const popup = page.waitForEvent("popup", { timeout: 5000 }).catch(() => null)
+await page.mouse.click(box.x + box.width / 2, box.y + box.height * 0.6)
+const p = await popup
+console.log("clicked through to:", p ? p.url() : "no popup")
+await browser.close()
