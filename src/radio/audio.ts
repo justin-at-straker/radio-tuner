@@ -3,6 +3,8 @@ import { BANDS, bandById, freqAt, reception, type Programme } from "./stations"
 
 const ALL_PROGRAMMES = [...new Set(BANDS.flatMap((b) => b.stations.map((s) => s.programme)))]
 import { radio } from "./store"
+import { startFireplace, type Fireplace } from "./fireplace"
+import { createRoomAcoustics, type RoomAcoustics } from "./acoustics"
 
 // Everything you hear is made here, live: no samples. Each programme is a
 // small generator scheduled a little ahead of time; tuning only moves gains.
@@ -12,6 +14,15 @@ import { radio } from "./store"
 //   whistle (heterodyne) -> gain     ┘
 
 let ctx: AudioContext | null = null
+let fireplace: Fireplace | null = null
+let acoustics: RoomAcoustics | null = null
+let closeness = 0
+
+/** How near the radio is: 0 resting on the table, 1 picked up and held close. */
+export function setRadioCloseness(x: number) {
+  closeness = x
+  acoustics?.setCloseness(x)
+}
 // everything that keeps sounding, so the engine can be shut down completely
 const timers: ReturnType<typeof setInterval>[] = []
 const elements: HTMLAudioElement[] = []
@@ -91,6 +102,8 @@ export function startAudio() {
   }
   ctx = new AudioContext()
   const c = ctx
+  // the room's own sound: the fire, quietly, whatever the radio is doing
+  fireplace = startFireplace(c)
   analyser = c.createAnalyser()
   analyser.fftSize = 1024
   master = c.createGain()
@@ -106,7 +119,10 @@ export function startAudio() {
   clip.curve = softClip()
   const bus = c.createGain()
   bus.gain.value = 0.7
-  bus.connect(highpass).connect(lowpass).connect(clip).connect(master).connect(analyser).connect(c.destination)
+  bus.connect(highpass).connect(lowpass).connect(clip).connect(master).connect(analyser)
+  // ...and out into the room: a little reverb and placement, not straight into your ears
+  acoustics = createRoomAcoustics(c, analyser)
+  acoustics.setCloseness(closeness)
 
   // Hiss between stations.
   const noise = c.createBufferSource()
@@ -390,6 +406,9 @@ export function stopAudio() {
   }
   elements.length = 0
   if (typeof speechSynthesis !== "undefined") speechSynthesis.cancel()
+  fireplace?.stop()
+  fireplace = null
+  acoustics = null
   void ctx?.close()
   ctx = null
 }

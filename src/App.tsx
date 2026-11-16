@@ -2,10 +2,13 @@ import * as React from "react"
 import { createStage, supportsHtmlInCanvas } from "@/gl/stage"
 import { BackLabel, Controls, Dial } from "@/ui/panels"
 import { installHardware } from "@/lib/install"
+import { startAudio } from "@/radio/audio"
 import { loading } from "@/gl/assets"
 
-/** Shown while the textures, models and room load: the valves warming up. */
-function Loading({ done }: { done: boolean }) {
+/** Shown while the textures, models and room load: the valves warming up.
+ *  Once everything's in, an Enter button: the click (or key press) that lets
+ *  the browser play sound, so the fire and the radio can be heard. */
+function Loading({ ready, entered, onEnter }: { ready: boolean; entered: boolean; onEnter: () => void }) {
   const [share, setShare] = React.useState(0)
   React.useEffect(() => {
     // the total grows as loads start, so only ever move forward
@@ -14,17 +17,31 @@ function Loading({ done }: { done: boolean }) {
     update()
     return () => void loading.listeners.delete(update)
   }, [])
-  const pct = Math.round((done ? 1 : share) * 100)
+  const enter = React.useRef<HTMLButtonElement>(null)
+  React.useEffect(() => {
+    if (ready) enter.current?.focus()
+  }, [ready])
+  const pct = Math.round((ready ? 1 : share) * 100)
   return (
-    <div className="loading" data-done={done || undefined} role="status" aria-live="polite" aria-busy={!done}>
-      <div className="valve" style={{ "--warm": done ? 1 : share } as React.CSSProperties}>
+    <div className="loading" data-ready={ready || undefined} data-done={entered || undefined} aria-hidden={entered || undefined}>
+      <div className="valve" style={{ "--warm": ready ? 1 : share } as React.CSSProperties}>
         <span className="filament" />
       </div>
-      <p>Warming up the valves…</p>
-      <div className="bar" aria-hidden>
-        <span style={{ width: `${pct}%` }} />
-      </div>
-      <small>{pct}%</small>
+      <p role="status" aria-live="polite">
+        {ready ? "The valves are warm." : "Warming up the valves…"}
+      </p>
+      {ready ? (
+        <button ref={enter} className="enter" onClick={onEnter}>
+          Enter
+        </button>
+      ) : (
+        <>
+          <div className="bar" aria-hidden>
+            <span style={{ width: `${pct}%` }} />
+          </div>
+          <small>{pct}%</small>
+        </>
+      )}
     </div>
   )
 }
@@ -38,8 +55,10 @@ export function App() {
   const [error, setError] = React.useState<string | null>(null)
   const [focused, setFocused] = React.useState(false)
   const [ready, setReady] = React.useState(false)
+  const [entered, setEntered] = React.useState(false)
 
   React.useEffect(installHardware, [])
+
   React.useEffect(() => {
     if (!supported) return
     try {
@@ -83,7 +102,15 @@ export function App() {
         <br />
         Music: public domain recordings via Wikimedia Commons
       </div>
-      <Loading done={ready} />
+      <Loading
+        ready={ready}
+        entered={entered}
+        onEnter={() => {
+          // the Enter press is the interaction browsers need before playing sound
+          startAudio()
+          setEntered(true)
+        }}
+      />
       {error && <div className="notice">{error}</div>}
     </>
   )

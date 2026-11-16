@@ -25,7 +25,7 @@ import { loadHdr, loadTexture } from "./assets"
 import { createRoom, FLOOR } from "./room"
 import { CONTROLS, DIAL, KNOBS, LABEL, needleU, PX_PER_UNIT } from "@/ui/panels"
 import { radio } from "@/radio/store"
-import { signal } from "@/radio/audio"
+import { setRadioCloseness, signal } from "@/radio/audio"
 
 // The 3D radio. The HTML panels are children of the <canvas content="drawable">;
 // each frame the browser hands us fresh pictures of them in the `paint` event,
@@ -443,6 +443,8 @@ export function createStage(
     // the radio's pose: resting on the table, or held up in the middle of the
     // view, gliding between the two along a little arc; the camera follows
     const e = f * f * (3 - 2 * f)
+    // picked up and brought close, the radio sounds nearer: drier, more present
+    setRadioCloseness(e)
     const lerp3 = (a: number[], b: number[]) => a.map((v, i) => v + (b[i] - v) * e) as [number, number, number]
     const eye = lerp3(EYE, [HELD[0], HELD[1] + 0.1, HELD[2] + focusDist])
     const view = lookAt(eye, lerp3(TARGET, HELD))
