@@ -26,7 +26,7 @@ import { loadHdr, loadTexture } from "./assets"
 import { createRoom, CUP, FLOOR, M, TYPEWRITER } from "./room"
 import { CONTROLS, DIAL, KNOBS, LABEL, needleU, PX_PER_UNIT } from "@/ui/panels"
 import { PAPER } from "@/ui/Newspaper"
-import { PAGES_IN_VIEW, paperStore } from "@/ui/paperStore"
+import { PAGES_IN_VIEW, paperStore, SHEET_COUNT, VIEW_COUNT } from "@/ui/paperStore"
 import { TYPE_PAGE } from "@/ui/Typewriter"
 import { typewriterStore } from "@/ui/typewriterStore"
 import { radioFocus } from "@/ui/radioFocus"
@@ -560,7 +560,8 @@ export function createStage(
     // held: upright over the table, its foot clear of the top, the camera
     // rising to meet it; open past the front page, centred on the spine
     // the camera follows what's open: the front page, the spread's spine, the back page
-    const across = Math.min(1, shown) + Math.max(0, Math.min(1, shown - 1))
+    // (0 the front page, 1 any spread, 2 the back page)
+    const across = Math.min(1, shown) + Math.max(0, Math.min(1, shown - (VIEW_COUNT - 2)))
     // held just above the table, in front of the cup, so its bottom edge hides it
     const readAt: [number, number, number] = [PAPER_READ[0], TABLE_Y + paperH / 2 + 0.08, PAPER_READ[2]]
     const readLook: [number, number, number] = [readAt[0] - (paperW / 2) * across, readAt[1], readAt[2]]
@@ -919,15 +920,17 @@ export function createStage(
      *  sitting a touch off true under the first, closed at the spine. Lying on
      *  the table its open edge lifts a little, as folded newsprint never quite
      *  settles; held up, it bows softly. Turned sheets land on top, on the left. */
-    // the inner sheet is a touch off true at its open edges, but joined to the
-    // outer one along the fold: so its nudge pivots on the spine (x = -0.5)
-    const sheetNudge = mul(translate(-0.5, 0, 0), scale(1 + STACK[0][0], 1 + STACK[0][1], 1), translate(0.5, 0, 0))
+    // the inner sheets are a touch off true at their open edges, but joined to
+    // the outer one along the fold: so each nudge pivots on the spine (x = -0.5)
+    const sheetNudges = Array.from({ length: SHEET_COUNT }, (_, k) =>
+      k === 0 ? IDENTITY : mul(translate(-0.5, 0, 0), scale(1 + STACK[(k - 1) % STACK.length][0], 1 + STACK[(k - 1) % STACK.length][1], 1), translate(0.5, 0, 0)),
+    )
     const drawPaper = (pre: Mat4, depthOnly = false) => {
       gl.disable(gl.CULL_FACE)
       if (!depthOnly) bindSet(...sets.linen)
       const lift = (1 - pe) * 0.012 // folded, the open edge barely lifts
-      const turn0 = Math.max(lift, Math.min(1, shown) * Math.PI)
-      const turn1 = Math.max(lift * 0.6, Math.max(0, Math.min(1, shown - 1)) * Math.PI)
+      // sheet k turns as the view passes it; each lies a little lower when folded
+      const turns = Array.from({ length: SHEET_COUNT }, (_, k) => Math.max(lift * (1 - 0.2 * k), Math.max(0, Math.min(1, shown - k)) * Math.PI))
       gl.uniform1f(U.uBow, pe * 0.06)
       // held, the top flops back a little and sways with your breathing
       gl.uniform1f(U.uSag, pe * (0.05 + 0.012 * Math.sin(now * 0.0011)))
@@ -936,11 +939,15 @@ export function createStage(
       if (foldE > 0.5) {
         for (const [i, [nx, ny]] of LEAVES.entries()) {
           const leaf = mul(translate(-0.5, 0, 0), scale(1 + nx, 1 + ny, 1), translate(0.5, 0, 0))
-          drawSheet(pre, 1, lift * (0.5 - i * 0.12), 0, leaf, depthOnly, FOLD_R - 0.0026 - i * 0.0009)
+          drawSheet(pre, SHEET_COUNT - 1, lift * (0.5 - i * 0.12), 0, leaf, depthOnly, FOLD_R - 0.0013 * SHEET_COUNT - i * 0.0006)
         }
       }
-      drawSheet(pre, 1, turn1, turn1 > Math.PI / 2 ? 0.006 : -0.003, sheetNudge, depthOnly, FOLD_R - 0.0013)
-      drawSheet(pre, 0, turn0, turn0 > Math.PI / 2 ? 0.002 : 0, IDENTITY, depthOnly)
+      // innermost first: unturned sheets sit deeper on the right; turned ones
+      // land on the left, the latest turned on top
+      for (let k = SHEET_COUNT - 1; k >= 0; k--) {
+        const turned = turns[k] > Math.PI / 2
+        drawSheet(pre, k, turns[k], turned ? 0.002 + 0.004 * k : -0.003 * k, sheetNudges[k], depthOnly, FOLD_R - 0.0013 * k)
+      }
       gl.uniform1f(U.uBow, 0)
       gl.uniform1f(U.uSag, 0)
       gl.enable(gl.CULL_FACE)
@@ -1060,7 +1067,7 @@ export function createStage(
     const openPages = ps.held ? PAGES_IN_VIEW[ps.view] : [0]
     pages.forEach((p, i) => {
       if (!settled || !openPages.includes(i)) return cv.clearElementGeometry?.(p.el)
-      const sheetAt = i >= 2 ? sheetNudge : IDENTITY
+      const sheetAt = sheetNudges[Math.floor(i / 2)]
       const side = i % 2 === 1 ? translate(-1, 0, 0) : IDENTITY
       // folded on the table, only the top half of the front page is showing
       const folded = !ps.held ? mul(translate(0, 0.25, 0), scale(1, 0.5, 1)) : IDENTITY

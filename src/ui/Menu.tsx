@@ -8,7 +8,7 @@ import { typewriterStore, useTypewriter } from "./typewriterStore"
 // typewriter, the radio) rather than going to other pages. ui-sdk Buttons, so
 // they work from the keyboard and a screen reader, and an agent can press them.
 
-type Place = "room" | "work" | "ask" | "radio" | "write"
+type Place = "room" | "work" | "made" | "ask" | "radio" | "write"
 
 /** Puts everything down, then brings one thing up. */
 function go(place: Place) {
@@ -17,13 +17,14 @@ function go(place: Place) {
   radioFocus.request(place === "radio")
   typewriterStore.set({ open: atTypewriter })
   if (place === "work") paperStore.set({ held: true, view: viewOf(1) })
-  if (place === "write") paperStore.set({ held: true, view: viewOf(3) })
+  if (place === "made") paperStore.set({ held: true, view: viewOf(3) })
+  if (place === "write") paperStore.set({ held: true, view: viewOf(5) })
 }
 
 export function Menu({ radioUp, hidden }: { radioUp: boolean; hidden: boolean }) {
   const { held, view } = usePaper()
   const { open } = useTypewriter()
-  const here: Place = held ? (view === viewOf(3) ? "write" : "work") : radioUp ? "radio" : open ? "ask" : "room"
+  const here: Place = held ? (view === viewOf(5) ? "write" : view === viewOf(3) ? "made" : "work") : radioUp ? "radio" : open ? "ask" : "room"
   const item = (place: Place, label: string) => (
     <Button className="menu-item" aria-current={here === place ? "page" : undefined} onClick={() => go(place)}>
       {label}
@@ -38,6 +39,7 @@ export function Menu({ radioUp, hidden }: { radioUp: boolean; hidden: boolean })
       <div className="menu-items">
         {item("room", "The room")}
         {item("work", "Work")}
+        {item("made", "How it's made")}
         {item("ask", "Ask the typewriter")}
         {item("radio", "The radio")}
         {item("write", "Write to me")}

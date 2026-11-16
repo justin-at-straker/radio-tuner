@@ -152,9 +152,15 @@ function FrontPage() {
             </li>
             <li>
               <span>
-                <b>Letters to the Editor</b>, write to Justin
+                <b>How This Room Was Built</b>, the making of this site
               </span>
               <span>4</span>
+            </li>
+            <li>
+              <span>
+                <b>Letters to the Editor</b>, write to Justin
+              </span>
+              <span>6</span>
             </li>
           </ul>
           <p className="weather">
@@ -522,11 +528,170 @@ function LettersPage() {
   );
 }
 
-const PAGES = [FrontPage, WorkPage, ProjectsPage, LettersPage];
+/** The feature across the middle spread: how this room was made, and why. */
+function MakingOfPage() {
+  return (
+    <>
+      <Masthead small />
+      <h2 className="section-head">How This Room Was Built</h2>
+      <div className="columns">
+        <p className="standfirst">
+          A valve radio, a typewriter that answers back, and a newspaper that is
+          really a CV. The Post looks inside the parlour on Mr Cole's website,
+          and at the decisions that shaped it.
+        </p>
+        <h3>It Began With a Question</h3>
+        <p>
+          The idea started with a demonstration of{" "}
+          <a
+            href="https://developer.chrome.com/blog/html-in-canvas"
+            target="_blank"
+            rel="noopener"
+          >
+            HTML-in-Canvas
+          </a>
+          , a new Chrome feature that lets a web page draw real HTML into a 3D
+          scene. The
+          question was what to build to show it off. A short brainstorm landed
+          on an old radio tuner: something with a dial, keys and knobs, made to
+          be touched.
+        </p>
+        <p>
+          From there it grew one request at a time. The radio needed somewhere
+          to live, so it got a room. The room felt bare, so it got a fire, a
+          Christmas tree, snow at the window and a coffee table. The table
+          needed something on it, so a newspaper arrived, and the newspaper
+          became the CV you are reading.
+        </p>
+        <h3>Why HTML in the Canvas</h3>
+        <p>
+          Most 3D sites paint their text as pictures, so it can't be selected,
+          searched or read aloud. Here every label on the dial, every key and
+          every page of this paper is live HTML. Chrome draws each element into
+          a texture, the scene lays it onto the radio's glass or the paper's
+          sheet, and every frame the browser is told exactly where that element
+          landed in 3D, so clicks, focus and text selection follow the drawing,
+          even with the radio turned upside down. The price is reach: it needs
+          Chrome or Edge 157 or later.
+        </p>
+        <h3>Drawn by Hand, in WebGL</h3>
+        <p>
+          Rather than reach for a 3D library, the scene is written directly in
+          WebGL2, with one shader for everything from the radio's lacquered
+          rosewood to the fire and the falling snow. That kept every decision in
+          view and made the unusual parts easier: textures that are web pages,
+          a polished table that reflects the radio, the lamp's shadows, and a
+          soft focus on the room behind. The furniture and textures are free
+          scans from Poly Haven; the typewriter is a model by landout on
+          Sketchfab.
+        </p>
+        <p>
+          A photograph behind the radio was considered and turned down in
+          favour of a real room, so that light, shadow and reflection would
+          agree. Realism came from looking: every change was checked in a real
+          browser, picture by picture, and the faults were plain to see. A cup
+          hovering above the table, a tag through a teapot's spout, a saucer
+          poking through this very paper. Each was spotted, then fixed.
+        </p>
+        <h3>Controls Anyone Can Use</h3>
+        <p>
+          The radio's controls are built with{" "}
+          <a href="https://ui-sdk.dev" target="_blank" rel="noopener">
+            ui-sdk
+          </a>
+          , a component library for interfaces that agents can use as well as
+          people. The knobs take the
+          keyboard, the band keys are a proper radio group, and the dial is a
+          custom Station component you can tune by name. The same components
+          serve people, screen readers and AI agents alike, through an agent
+          bridge that lists every control and lets an agent work it, asking the
+          person first for anything that matters.
+        </p>
+      </div>
+    </>
+  );
+}
+
+function MakingOfPageTwo() {
+  return (
+    <>
+      <Masthead small />
+      <h2 className="section-head">How This Room Was Built, Continued</h2>
+      <div className="columns">
+        <h3>The Sound of the Set</h3>
+        <p>
+          The radio first played sounds it made itself: Morse, the time pips
+          and a spoken coastal forecast, all still on the dial. Music arrived
+          next as public-domain 78s, then gave way to a better idea: real
+          radio. RNZ National and RNZ Concert sit on their actual Auckland
+          frequencies, beside NPO Klassiek from Hilversum, Jazz24 and others,
+          each checked to stream securely and to let its sound through the
+          browser's audio engine.
+        </p>
+        <p>
+          That matters because everything passes through a model of the set:
+          hiss between stations, a whistle near a carrier, the softness of a
+          valve, then the room's own echo. A station only connects while you
+          are tuned near it. The fire is a recording of a real one, the pages
+          turn with real paper, and the typewriter is a museum recording cut
+          into twelve keystrokes, a space bar, a bell and a carriage return.
+        </p>
+        <h3>The Paper Itself</h3>
+        <p>
+          The CV became a broadsheet you can pick up: folded in half on the
+          table, unfolding in your hands, printed on both sides. Making it
+          readable took several passes: larger type in a sturdier serif, two
+          wide columns instead of three, and lighting that steps aside while
+          you read. It behaves like newsprint too, matte and a little floppy as
+          a page turns, and thin enough that the fire glows through it.
+        </p>
+        <h3>A Typewriter That Answers</h3>
+        <p>
+          The typewriter is an assistant, not a chat box. Type a question onto
+          its sheet and the answer types itself back, from Claude Haiku through
+          Vercel's AI Gateway and the AI SDK. It has no hands of its own: its
+          tools are ui-sdk's agent tools, run in your browser on the same radio,
+          newspaper and letters form you can touch. Ask about Mr Cole's work
+          and it opens this paper at the right page; ask for music and it tunes
+          the radio. Posting a letter needs your yes, asked on the page. A
+          cheaper model was tried and couldn't reliably tune the radio, so
+          Claude stayed.
+        </p>
+        <h3>The Quiet Parts</h3>
+        <p>
+          Letters are emailed straight from Mr Cole's own mailbox, with no
+          email service in between. Vercel's BotID keeps bots away from the
+          letters page and the typewriter, and prompt caching keeps each answer
+          cheap. The menu along the top brings each thing into view with a
+          single click.
+        </p>
+        <h3>How It Was Made</h3>
+        <p>
+          The room was built in conversation with Claude Code, an AI coding
+          agent, over a couple of long evenings: Mr Cole asking, looking and
+          correcting; the agent building, testing in a real browser and
+          reporting back. Most of the craft was in the looking.{" "}
+          <a
+            href="https://github.com/justin-at-straker/radio-tuner"
+            target="_blank"
+            rel="noopener"
+          >
+            The source is on GitHub
+          </a>
+          .
+        </p>
+      </div>
+    </>
+  );
+}
+
+const PAGES = [FrontPage, WorkPage, ProjectsPage, MakingOfPage, MakingOfPageTwo, LettersPage];
 const PAGE_NAMES = [
   "Front page",
   "The Work",
   "Projects and Skills",
+  "How This Room Was Built",
+  "How This Room Was Built, continued",
   "Letters to the Editor",
 ];
 
